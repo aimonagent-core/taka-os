@@ -1,57 +1,68 @@
-# File: app/core/security.py
-# Purpose: Password hashing, JWT tokens, and MFA/TOTP handling
-# Dependencies: app.config.settings, passlib, python-jose, pyotp
+"""Sécurité — JWT + bcrypt + MFA TOTP (sans passlib, bug bcrypt 72 bytes)."""
 
-import base64
-from datetime import datetime, timedelta, timezone
-from typing import Any
-
+from datetime import datetime, timedelta
+from typing import Optional
+import bcrypt
 import pyotp
-from jose import JWTError, jwt
-from passlib.context import CryptContext
-
+from jose import jwt, JWTError
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-ALGORITHM = settings.algorithm
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Vérifie un mot de passe contre son hash bcrypt."""
+    return bcrypt.checkpw(
+        plain_password.encode("utf-8"),
+        hashed_password.encode("utf-8"),
+    )
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """Génère un hash bcrypt (limité à 72 bytes, standard bcrypt)."""
+    password_bytes = password.encode("utf-8")[:72]
+    hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt(rounds=12))
+    return hashed.decode("utf-8")
 
 
 def create_access_token(
-    subject: str | Any,
-    expires_delta: timedelta | None = None,
-    extra_claims: dict | None = None,
+    data: dict = None,
+    subject: str = None,
+    expires_delta: Optional[timedelta] = None,
+    extra_claims: dict = None,
 ) -> str:
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=settings.access_token_expire_minutes
-        )
-    to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+    """Crée un token JWT d'accès. Accepte data dict, subject string, ou les deux."""
+    if data is None:
+        data = {}
+    to_encode = data.copy()
+    if subject is not None:
+        to_encode.update({"sub": subject})
     if extra_claims:
         to_encode.update(extra_claims)
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-def create_refresh_token(subject: str | Any) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
-        days=settings.refresh_token_expire_days
-    )
-    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "type": "access"})
     return jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
 
 
-def decode_token(token: str) -> dict | None:
+def create_refresh_token(data: dict = None, subject: str = None) -> str:
+    """Crée un token JWT de rafraîchissement."""
+    if data is None:
+        data = {}
+    to_encode = data.copy()
+    if subject is not None:
+        to_encode.update({"sub": subject})
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
+
+
+def decode_token(token: str) -> Optional[dict]:
+    """Décode un token JWT (access ou refresh). Retourne None si invalide."""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         return payload
@@ -59,43 +70,44 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-# === MFA / TOTP ===
+def verify_totp(secret: str, code: str) -> bool:
+    """Vérifie un code TOTP (6 chiffres) contre un secret."""
+    try:
+        totp = pyotp.TOTP(secret)
+        return totp.verify(code, valid_window=1)
+    except Exception:
+        return False
 
 
 def generate_mfa_secret() -> str:
-    """Generate a new TOTP secret (base32)."""
+    """Génère un secret TOTP aléatoire (base32)."""
     return pyotp.random_base32()
 
 
-def get_totp_uri(secret: str, user_email: str) -> str:
-    """Generate the otpauth:// URI for QR code generation."""
+def get_totp_uri(secret: str, email: str, issuer: str = "TAKA OS") -> str:
+    """Génère l'URI otpauth pour le QR code."""
     totp = pyotp.TOTP(secret)
-    return totp.provisioning_uri(name=user_email, issuer_name=settings.mfa_issuer_name)
+    return totp.provisioning_uri(name=email, issuer_name=issuer)
 
 
-def verify_totp(secret: str, token: str) -> bool:
-    """Verify a TOTP code against a secret. Window=1 (30s before/after)."""
-    if not secret or not token:
-        return False
-    totp = pyotp.TOTP(secret)
-    return totp.verify(token, valid_window=1)
+def encrypt_mfa_secret(secret: str) -> str:
+    """Chiffre le secret MFA. En v0.1 : stockage plain (pas de chiffrement)."""
+    # TODO(v0.3) : Implémenter le chiffrement avec Vault
+    return secret
 
 
-def encrypt_mfa_secret(secret: str, encryption_key: str | None = None) -> str:
-    """
-    Encrypt the MFA secret before storage.
-    Fallback: XOR with a derived key from SECRET_KEY if no encryption_key provided.
-    TODO: Replace with proper Fernet encryption in production.
-    """
-    key = (encryption_key or settings.secret_key)[:32].encode("utf-8")
-    secret_bytes = secret.encode("utf-8")
-    encrypted = bytes(s ^ key[i % len(key)] for i, s in enumerate(secret_bytes))
-    return base64.b64encode(encrypted).decode("ascii")
+def decrypt_mfa_secret(encrypted_secret: str) -> str:
+    """Déchiffre le secret MFA. En v0.1 : stockage plain (pas de chiffrement)."""
+    return encrypted_secret
 
 
-def decrypt_mfa_secret(encrypted_secret: str, encryption_key: str | None = None) -> str:
-    """Decrypt the MFA secret."""
-    key = (encryption_key or settings.secret_key)[:32].encode("utf-8")
-    encrypted_bytes = base64.b64decode(encrypted_secret.encode("ascii"))
-    decrypted = bytes(e ^ key[i % len(key)] for i, e in enumerate(encrypted_bytes))
-    return decrypted.decode("utf-8")
+def generate_backup_code() -> str:
+    """Génère un code de secours MFA (8 caractères hex)."""
+    import secrets
+    return secrets.token_hex(4).upper()
+
+
+def hash_backup_code(code: str) -> str:
+    """Hash un code de secours avec SHA-256."""
+    import hashlib
+    return hashlib.sha256(code.encode()).hexdigest()
