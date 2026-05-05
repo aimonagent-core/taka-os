@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dossiers résiduels agents (pas de docs dans le repo)
+app/_1.*/
