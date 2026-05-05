@@ -12,6 +12,8 @@ import VeillePage from "./pages/VeillePage";
 import AODetailPage from "./pages/AODetailPage";
 import KanbanPage from "./pages/KanbanPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import RedacteurPage from "./pages/RedacteurPage";
+import SoumissionsPage from "./pages/SoumissionsPage";
 
 function Home() {
   return <div><h1>TAKA Platform</h1><p>Welcome to TAKA.</p></div>;
@@ -120,6 +122,8 @@ const App: FC = () => {
               <Route path="/documents" element={<DocumentsPage />} />
               <Route path="/memory" element={<MemoryPage />} />
               <Route path="/hil" element={<HILPage />} />
+              <Route path="/redacteur" element={<RedacteurPage />} />
+              <Route path="/soumissions" element={<SoumissionsPage />} />
             </Routes>
           </main>
         </div>
