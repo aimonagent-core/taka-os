@@ -17,6 +17,7 @@ from app.core.security import (
     decode_token,
     decrypt_mfa_secret,
     get_password_hash,
+    verify_backup_code,
     verify_password,
     verify_totp,
 )
@@ -175,6 +176,59 @@ async def login(
     )
 
 
+async def _mfa_attempt_key(user_id: str) -> str:
+    """Cle Redis pour le compteur de tentatives MFA."""
+    return f"mfa_attempts:{user_id}"
+
+
+async def _mfa_rate_limit_check(user_id: str) -> tuple[bool, int]:
+    """Verifie si l'utilisateur a depasse la limite de tentatives MFA.
+    Retourne (allowed, remaining_attempts).
+    """
+    import redis.asyncio as redis
+    from app.config import settings
+    try:
+        r = redis.from_url(settings.redis_url, decode_responses=True)
+    except Exception:
+        import fakeredis.aioredis
+        r = fakeredis.aioredis.FakeRedis()
+    key = await _mfa_attempt_key(user_id)
+    current = await r.get(key)
+    if current and int(current) >= 5:
+        ttl = await r.ttl(key)
+        return False, 0
+    return True, 5 - (int(current) if current else 0)
+
+
+async def _mfa_attempt_increment(user_id: str):
+    """Incrémente le compteur de tentatives MFA echouees."""
+    import redis.asyncio as redis
+    from app.config import settings
+    try:
+        r = redis.from_url(settings.redis_url, decode_responses=True)
+    except Exception:
+        import fakeredis.aioredis
+        r = fakeredis.aioredis.FakeRedis()
+    key = await _mfa_attempt_key(user_id)
+    pipe = r.pipeline()
+    pipe.incr(key)
+    pipe.expire(key, 300)
+    await pipe.execute()
+
+
+async def _mfa_attempt_reset(user_id: str):
+    """Reset le compteur de tentatives MFA."""
+    import redis.asyncio as redis
+    from app.config import settings
+    try:
+        r = redis.from_url(settings.redis_url, decode_responses=True)
+    except Exception:
+        import fakeredis.aioredis
+        r = fakeredis.aioredis.FakeRedis()
+    key = await _mfa_attempt_key(user_id)
+    await r.delete(key)
+
+
 @router.post("/mfa/verify")
 async def mfa_verify(
     mfa_token: str,
@@ -182,7 +236,7 @@ async def mfa_verify(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Verify MFA code and issue tokens."""
+    """Verify MFA code (TOTP or backup code) and issue tokens."""
     payload = decode_token(mfa_token)
     if not payload or payload.get("type") != "mfa_challenge":
         raise HTTPException(
@@ -191,6 +245,15 @@ async def mfa_verify(
         )
 
     user_id = payload.get("sub")
+
+    # --- Rate limiting ---
+    allowed, remaining = await _mfa_rate_limit_check(user_id)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Trop de tentatives echouees. Reessayez dans 5 minutes.",
+        )
+
     result = await db.execute(
         select(User).where(
             User.id == user_id,
@@ -205,12 +268,25 @@ async def mfa_verify(
             detail="MFA not configured",
         )
 
+    # --- Verification TOTP ---
     secret = decrypt_mfa_secret(user.mfa_secret)
-    if not verify_totp(secret, code):
+    ok = verify_totp(secret, code)
+
+    # --- Verification backup code (fallback) ---
+    if not ok and user.mfa_backup_codes_hash:
+        ok, remaining_codes = verify_backup_code(user.mfa_backup_codes_hash, code)
+        if ok:
+            user.mfa_backup_codes_hash = remaining_codes
+
+    if not ok:
+        await _mfa_attempt_increment(user_id)
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid MFA code",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Code invalide. Tentatives restantes: {remaining - 1}",
         )
+
+    # Reset compteur en cas de succes
+    await _mfa_attempt_reset(user_id)
 
     access_token = create_access_token(subject=str(user.id))
     refresh_token = create_refresh_token(subject=str(user.id))

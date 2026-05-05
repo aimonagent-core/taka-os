@@ -21,6 +21,10 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from app.database import Base
 from app.models import ao  # noqa: F401
+from app.models import ao_s2  # noqa: F401
+from app.models import scoring  # noqa: F401
+from app.models import business_line  # noqa: F401
+from app.models import feature_flag  # noqa: F401
 
 target_metadata = Base.metadata
 

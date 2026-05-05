@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.security import decode_token
 from app.core.sentry import set_sentry_user
@@ -31,7 +32,9 @@ async def get_current_user(
         raise credentials_exception
     user_id = payload.get("sub")
     result = await db.execute(
-        select(User).where(
+        select(User)
+        .options(selectinload(User.tenant))
+        .where(
             User.id == user_id,
             User.is_active == True,  # noqa: E712
             User.deleted_at.is_(None),

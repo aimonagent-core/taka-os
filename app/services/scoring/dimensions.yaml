@@ -1,0 +1,240 @@
+# ============================================================
+# CONFIGURATION DES 5 DIMENSIONS DE SCORING V2
+# ============================================================
+
+dimensions:
+
+  coherence:
+    description: "Alignement entre le contenu de l'AO et le metier du candidat"
+    default_score: 5.0
+    profiles:
+      prudent:
+        - condition: "cpv_match and len(cpv_codes) > 0"
+          score: 9.0
+          explanation: "CPV parfaitement aligne avec le metier declare"
+        - condition: "keyword_match and not cpv_match"
+          score: 5.0
+          explanation: "Mots-cles partiels — necessite verification manuelle"
+        - condition: "not cpv_match and not keyword_match"
+          score: 2.0
+          explanation: "Aucune correspondance CPV — risque eleve de non-qualification"
+      opportuniste:
+        - condition: "cpv_match or keyword_match"
+          score: 8.0
+          explanation: "Correspondance suffisante pour postuler"
+        - condition: "not cpv_match and not keyword_match"
+          score: 4.0
+          explanation: "AO eloigne du metier mais postulable si marge"
+      specialise:
+        - condition: "cpv_match and keyword_match"
+          score: 10.0
+          explanation: "Correspondance parfaite metier + expertise"
+        - condition: "cpv_match"
+          score: 7.0
+          explanation: "CPV aligne mais mots-cles generiques"
+        - condition: "not cpv_match"
+          score: 3.0
+          explanation: "Hors scope metier declare"
+
+  financiere:
+    description: "Viabilite financiere : montant, caution, tresorerie requise"
+    default_score: 5.0
+    profiles:
+      prudent:
+        - condition: "amount is None"
+          score: 3.0
+          explanation: "Montant inconnu — risque budgetaire non evalue"
+        - condition: "amount < 100000"
+          score: 9.0
+          explanation: "Montant faible, tresorerie accessible"
+        - condition: "amount < 500000"
+          score: 7.0
+          explanation: "Montant moyen — budgeter la caution (~5%)"
+        - condition: "amount < 2000000"
+          score: 5.0
+          explanation: "Montant eleve — necessite caution bancaire et tresorerie"
+        - condition: "amount >= 2000000"
+          score: 2.0
+          explanation: "Montant tres eleve — risque financier majeur"
+      opportuniste:
+        - condition: "amount is None"
+          score: 5.0
+          explanation: "Montant non precise — postuler pour obtenir l'info"
+        - condition: "amount < 2000000"
+          score: 8.0
+          explanation: "Montant interessant, rentabilite potentielle"
+        - condition: "amount >= 2000000"
+          score: 6.0
+          explanation: "Gros marche — partenariat possible avec co-traitant"
+      specialise:
+        - condition: "amount is None"
+          score: 4.0
+          explanation: "Info manquante mais expertise peut compenser"
+        - condition: "amount < 500000"
+          score: 10.0
+          explanation: "Montant ideal pour specialiste (rentabilite max)"
+        - condition: "amount < 2000000"
+          score: 8.0
+          explanation: "Tres bon potentiel avec expertise technique"
+        - condition: "amount >= 2000000"
+          score: 5.0
+          explanation: "Gros volume mais expertise reconnue peut l'emporter"
+
+  geographique:
+    description: "Proximite geographique avec le siege social ou agences"
+    default_score: 5.0
+    profiles:
+      prudent:
+        - condition: "dept_code is None"
+          score: 5.0
+          explanation: "Localisation non precisee"
+        - condition: "dept_code in user_departments"
+          score: 10.0
+          explanation: "AO dans le departement du siege"
+        - condition: "dept_code in adjacent_departments"
+          score: 7.0
+          explanation: "Departement adjacent — deplacement maitrisable"
+        - condition: "region == user_region"
+          score: 5.0
+          explanation: "Meme region mais deplacement necessaire"
+        - condition: "country != user_country"
+          score: 2.0
+          explanation: "AO etranger — contraintes reglementaires"
+      opportuniste:
+        - condition: "country == user_country"
+          score: 8.0
+          explanation: "AO national — postulable"
+        - condition: "country != user_country"
+          score: 6.0
+          explanation: "AO international — opportunite d'expansion"
+        - condition: "dept_code is None"
+          score: 7.0
+          explanation: "Localisation inconnue mais postulable"
+      specialise:
+        - condition: "dept_code in user_departments"
+          score: 10.0
+          explanation: "Proximite ideale pour interventions specialisees"
+        - condition: "region == user_region"
+          score: 8.0
+          explanation: "Accessible rapidement pour expertise"
+        - condition: "country == user_country"
+          score: 6.0
+          explanation: "National — mission possible"
+        - condition: "country != user_country"
+          score: 4.0
+          explanation: "International — expertise reconnue peut justifier le cout"
+
+  temporelle:
+    description: "Delai disponible pour preparer le dossier de candidature"
+    default_score: 5.0
+    profiles:
+      prudent:
+        - condition: "days_to_deadline is None"
+          score: 3.0
+          explanation: "Deadline inconnue — risque de retard"
+        - condition: "days_to_deadline > 30"
+          score: 10.0
+          explanation: "Plus d'un mois — preparation optimale"
+        - condition: "days_to_deadline > 14"
+          score: 7.0
+          explanation: "2-4 semaines — preparation realisable"
+        - condition: "days_to_deadline > 7"
+          score: 4.0
+          explanation: "1-2 semaines — dossier rapide necessaire"
+        - condition: "days_to_deadline <= 7"
+          score: 1.0
+          explanation: "Moins d'une semaine — risque de non depot"
+      opportuniste:
+        - condition: "days_to_deadline is None"
+          score: 6.0
+          explanation: "Deadline non affichee — contacter l'acheteur"
+        - condition: "days_to_deadline > 14"
+          score: 9.0
+          explanation: "Delai confortable"
+        - condition: "days_to_deadline > 7"
+          score: 7.0
+          explanation: "Semaine+ — dossier standard possible"
+        - condition: "days_to_deadline > 3"
+          score: 5.0
+          explanation: "3-7 jours — express mais faisable"
+        - condition: "days_to_deadline <= 3"
+          score: 3.0
+          explanation: "Urgent mais opportuniste peut tenter"
+      specialise:
+        - condition: "days_to_deadline is None"
+          score: 5.0
+          explanation: "Info manquante mais reactivite du specialiste"
+        - condition: "days_to_deadline > 21"
+          score: 10.0
+          explanation: "Delai ideal pour proposer solution sur mesure"
+        - condition: "days_to_deadline > 10"
+          score: 8.0
+          explanation: "Suffisant pour dossier technique qualifie"
+        - condition: "days_to_deadline > 5"
+          score: 6.0
+          explanation: "Rapide mais template specialise accelere"
+        - condition: "days_to_deadline <= 5"
+          score: 4.0
+          explanation: "Tres court mais expertise reconnue peut l'emporter"
+
+  concurrentielle:
+    description: "Niveau de concurrence attendu sur l'AO"
+    default_score: 5.0
+    profiles:
+      prudent:
+        - condition: "notice_type == 'appel_offre_restreint'"
+          score: 9.0
+          explanation: "AO restreint — concurrence limitee"
+        - condition: "notice_type == 'marche_negocie'"
+          score: 8.0
+          explanation: "Marche negocie — relationnel privilegie"
+        - condition: "notice_type == 'procedure_adaptee'"
+          score: 6.0
+          explanation: "Procedure adaptee — concurrence moderee"
+        - condition: "notice_type == 'appel_offre_ouvert'"
+          score: 3.0
+          explanation: "AO ouvert — forte concurrence"
+      opportuniste:
+        - condition: "notice_type in ['appel_offre_restreint', 'marche_negocie']"
+          score: 9.0
+          explanation: "Procedure selective — avantage pour early bird"
+        - condition: "notice_type == 'appel_offre_ouvert'"
+          score: 6.0
+          explanation: "AO ouvert mais volume attire moins de concurrents"
+        - condition: "notice_type == 'procedure_adaptee'"
+          score: 7.0
+          explanation: "Procedure adaptee — opportunite"
+      specialise:
+        - condition: "notice_type in ['appel_offre_restreint', 'marche_negocie', 'procedure_adaptee']"
+          score: 10.0
+          explanation: "Procedures selectives — l'expertise est le critere cle"
+        - condition: "notice_type == 'appel_offre_ouvert'"
+          score: 7.0
+          explanation: "Meme ouvert, la specialisation fait la difference"
+
+profile_weights:
+  prudent:
+    coherence: 0.25
+    financiere: 0.25
+    geographique: 0.20
+    temporelle: 0.20
+    concurrentielle: 0.10
+
+  opportuniste:
+    coherence: 0.15
+    financiere: 0.20
+    geographique: 0.15
+    temporelle: 0.15
+    concurrentielle: 0.35
+
+  specialise:
+    coherence: 0.30
+    financiere: 0.20
+    geographique: 0.15
+    temporelle: 0.15
+    concurrentielle: 0.20
+
+verdict_thresholds:
+  GO: 7.0
+  MAYBE: 4.0
+  NO_GO: 0.0

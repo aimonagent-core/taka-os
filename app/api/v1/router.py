@@ -1,19 +1,24 @@
 # File: app/api/v1/router.py
 # Purpose: Main API v1 router aggregator
-# Dependencies: all v1 endpoint modules
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, auth_mfa
+from app.api.v1 import auth, auth_mfa, autonomy
 from app.api.v1.endpoints import documents, health, hil, memory, tenants, users
+from app.api.v1 import veille, scoring, business_lines, dashboard
 
 api_router = APIRouter(prefix="/api/v1")
 
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(auth_mfa.router, prefix="/auth", tags=["MFA"])
+api_router.include_router(autonomy.router, tags=["Autonomy"])
 api_router.include_router(health.router, prefix="/health", tags=["Health"])
 api_router.include_router(tenants.router, prefix="/tenants", tags=["Tenants"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(documents.router, prefix="/documents", tags=["Documents"])
 api_router.include_router(memory.router, prefix="/memory", tags=["Memory"])
 api_router.include_router(hil.router, prefix="/hil", tags=["Human-in-the-Loop"])
+api_router.include_router(veille.router, tags=["Veille"])
+api_router.include_router(scoring.router, tags=["Scoring"])
+api_router.include_router(business_lines.router, tags=["Business Lines"])
+api_router.include_router(dashboard.router, tags=["Dashboard"])

@@ -1,6 +1,5 @@
 // File: frontend/src/App.tsx
 // Purpose: Root App component with ErrorBoundary, routes, and auth context
-// Dependencies: react-router-dom, ./components/ErrorBoundary, ./components/AuthContext
 
 import { FC } from "react";
 import { Routes, Route, Link } from "react-router-dom";
@@ -9,6 +8,10 @@ import { AuthProvider, useAuth } from "./components/AuthContext";
 import DocumentUpload from "./components/documents/DocumentUpload";
 import MemorySearch from "./components/memory/MemorySearch";
 import HILDashboard from "./components/hil/HILDashboard";
+import VeillePage from "./pages/VeillePage";
+import AODetailPage from "./pages/AODetailPage";
+import KanbanPage from "./pages/KanbanPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 function Home() {
   return <div><h1>TAKA Platform</h1><p>Welcome to TAKA.</p></div>;
@@ -81,6 +84,9 @@ function Nav() {
       {user && (
         <>
           <Link to="/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Dashboard</Link>
+          <Link to="/veille" style={{ color: "#fff", marginRight: "1rem" }}>Veille</Link>
+          <Link to="/kanban" style={{ color: "#fff", marginRight: "1rem" }}>Kanban</Link>
+          <Link to="/admin/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Admin</Link>
           <Link to="/admin/users" style={{ color: "#fff", marginRight: "1rem" }}>Users</Link>
           <Link to="/admin/tenants" style={{ color: "#fff", marginRight: "1rem" }}>Tenants</Link>
           <Link to="/documents" style={{ color: "#fff", marginRight: "1rem" }}>Documents</Link>
@@ -105,6 +111,10 @@ const App: FC = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/veille" element={<VeillePage />} />
+              <Route path="/ao/:aoId" element={<AODetailPage />} />
+              <Route path="/kanban" element={<KanbanPage />} />
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/tenants" element={<AdminTenants />} />
               <Route path="/documents" element={<DocumentsPage />} />

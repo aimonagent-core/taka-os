@@ -112,3 +112,16 @@ def hash_backup_code(code: str) -> str:
     """Hash un code de secours avec SHA-256."""
     import hashlib
     return hashlib.sha256(code.encode()).hexdigest()
+
+
+def verify_backup_code(stored_codes: list[str] | None, code: str) -> tuple[bool, list[str] | None]:
+    """Verifie un backup code contre une liste de codes hashes.
+    Retourne (ok, remaining_codes) ou (False, stored_codes).
+    """
+    if not stored_codes:
+        return False, stored_codes
+    code_hash = hash_backup_code(code)
+    if code_hash in stored_codes:
+        remaining = [c for c in stored_codes if c != code_hash]
+        return True, remaining if remaining else None
+    return False, stored_codes

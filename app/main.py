@@ -13,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.router import api_router
 from app.config import settings
+from app.core.feature_flags_middleware import FeatureFlagsMiddleware
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.core.sentry import init_sentry
 from app.database import init_db
@@ -27,7 +28,18 @@ async def lifespan(app: FastAPI):
     """Application lifespan: init DB on startup."""
     logger.info("Starting up TAKA API v%s", settings.app_version)
     await init_db()
+
+    from app.agents.veilleur.scheduler import VeilleurScheduler
+
+    scheduler = VeilleurScheduler()
+    await scheduler.start()
+    app.state.veille_scheduler = scheduler
+    logger.info("Scheduler started")
+
     yield
+
+    if hasattr(app.state, "veille_scheduler"):
+        app.state.veille_scheduler.stop()
     logger.info("Shutting down TAKA API")
 
 
@@ -77,6 +89,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(FeatureFlagsMiddleware)
 
 # === EXCEPTION HANDLERS ===
 

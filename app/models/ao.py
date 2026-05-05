@@ -652,7 +652,7 @@ class DocumentAO(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    ao: Mapped["AO | None"] = relationship("AO", back_populates="documents")
+    ao: Mapped["AO | None"] = relationship("app.models.ao.AO", back_populates="documents")
 
 
 class Conversation(Base):
