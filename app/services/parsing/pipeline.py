@@ -92,7 +92,7 @@ class ParsingPipeline:
         except asyncio.TimeoutError:
             result.degraded = True
         except Exception as exc:
-            logger.error("parsing_level_1_error", error=str(exc))
+            logger.error("parsing_level_1_error: %s", exc)
             result.degraded = True
 
         # Level 2
@@ -114,7 +114,7 @@ class ParsingPipeline:
             except asyncio.TimeoutError:
                 result.degraded = True
             except Exception as exc:
-                logger.error("parsing_level_2_error", error=str(exc))
+                logger.error("parsing_level_2_error: %s", exc)
                 result.degraded = True
 
         # Level 3
@@ -135,7 +135,7 @@ class ParsingPipeline:
             except asyncio.TimeoutError:
                 result.degraded = True
             except Exception as exc:
-                logger.error("parsing_level_3_error", error=str(exc))
+                logger.error("parsing_level_3_error: %s", exc)
                 result.degraded = True
 
         # Level 4
@@ -153,7 +153,7 @@ class ParsingPipeline:
             except asyncio.TimeoutError:
                 result.degraded = True
             except Exception as exc:
-                logger.error("parsing_level_4_error", error=str(exc))
+                logger.error("parsing_level_4_error: %s", exc)
                 result.degraded = True
 
         result.processing_time_ms = int((time.time() - start_time) * 1000)

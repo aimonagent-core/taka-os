@@ -123,7 +123,7 @@ class Level4LLMExtractor:
                 confidence = min(confidence + 0.05, 1.0)
             return parsed, confidence
         except Exception as exc:
-            logger.error("level4_llm_error", error=str(exc))
+            logger.error("level4_llm_error: %s", exc)
             return {"error": str(exc), "document_type": "unknown", "confidence": 0.0}, 0.0
 
     def _extract_json(self, content: str) -> dict:

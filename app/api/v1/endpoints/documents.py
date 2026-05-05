@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.ao import Document, DocumentStatus, MemoryType, User
@@ -76,7 +77,7 @@ async def parse_document(
         level1=Level1TextExtractor(),
         level2=Level2OCRExtractor(),
         level3=Level3StructuredExtractor(),
-        level4=Level4LLMExtractor(client=MistralAIClient(api_key="dummy")),
+        level4=Level4LLMExtractor(client=MistralAIClient(api_key=settings.mistral_api_key)),
     )
     result = await pipeline.parse(doc.file_path, target_level=target_level)
 
@@ -129,7 +130,7 @@ async def parse_document(
     }
     await db.commit()
 
-    memory = MemoryService(db, MistralAIClient(api_key="dummy"))
+    memory = MemoryService(db, MistralAIClient(api_key=settings.mistral_api_key))
     await memory.ingest(
         content=full_text[:4000],
         memory_type=MemoryType.SEMANTIC,

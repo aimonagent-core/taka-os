@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.ao import MemoryEntry, User
@@ -25,12 +26,12 @@ async def search_memory(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
-    svc = MemoryService(db, MistralAIClient(api_key="dummy"))
+    svc = MemoryService(db, MistralAIClient(api_key=settings.mistral_api_key))
     results = await svc.search(q, user_id=current_user.id, limit=limit)
     return [
         {
             "id": str(r.id),
-            "entry_type": r.memory_type.value if r.memory_type else None,
+            "entry_type": r.memory_type if r.memory_type else None,
             "content": str(r.content.get("text", ""))[:500] if isinstance(r.content, dict) else str(r.content)[:500],
             "layer": "stm" if (r.ttl_seconds or 0) < 86400 * 7 else "im" if (r.ttl_seconds or 0) < 86400 * 365 else "ltm",
             "relevance_score": r.decay_factor,
@@ -66,7 +67,7 @@ async def promote_to_ltm(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict[str, Any]:
-    svc = MemoryService(db, MistralAIClient(api_key="dummy"))
+    svc = MemoryService(db, MistralAIClient(api_key=settings.mistral_api_key))
     ok = await svc.promote_to_ltm(entry_id)
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Memory entry not found")

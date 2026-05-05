@@ -225,3 +225,4 @@ app/_1.*/
 
 # Node
 node_modules/
+test-results/

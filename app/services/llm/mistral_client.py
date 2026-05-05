@@ -63,7 +63,7 @@ class MistralAIClient:
             return response.json()
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code in (429, 503):
-                logger.warning("mistral_primary_failed", status=exc.response.status_code)
+                logger.warning("mistral_primary_failed: status=%s", exc.response.status_code)
                 payload["model"] = self._fallback_model
                 response = await self._client.post(
                     f"{self._base_url}/chat/completions", json=payload

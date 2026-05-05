@@ -79,7 +79,7 @@ class AutonomyEngine:
             self._db.add(hil)
             await self._db.commit()
             await self._db.refresh(hil)
-            logger.info("hil_request_created", hil_id=str(hil.id), reasons=hil_reasons)
+            logger.info("hil_request_created: hil_id=%s reasons=%s", hil.id, hil_reasons)
             return Decision(
                 action="await_hil",
                 params={"hil_id": str(hil.id), "reasons": hil_reasons},

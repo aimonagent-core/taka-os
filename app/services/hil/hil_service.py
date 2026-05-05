@@ -41,7 +41,7 @@ class HILService:
         self._db.add(hil)
         await self._db.commit()
         await self._db.refresh(hil)
-        logger.info("hil_request_created", hil_id=str(hil.id), decision_type=decision_type)
+        logger.info("hil_request_created: hil_id=%s decision_type=%s", hil.id, decision_type)
         return hil
 
     async def get_pending(self, user_id: UUID | None = None) -> list[HILRequest]:
@@ -93,7 +93,7 @@ class HILService:
         hil.decision_value = {"decision": "rejected", "notes": reason}
         await self._db.commit()
         await self._db.refresh(hil)
-        logger.info("hil_rejected", hil_id=str(hil_id), resolver_id=str(resolver_id))
+        logger.info("hil_rejected: hil_id=%s resolver_id=%s", hil_id, resolver_id)
         return hil
 
     async def escalate(self, hil_id: UUID, to_user_id: UUID, reason: str = "") -> HILRequest:
@@ -117,7 +117,7 @@ class HILService:
         self._db.add(escalated)
         await self._db.commit()
         await self._db.refresh(escalated)
-        logger.info("hil_escalated", from_hil_id=str(hil_id), to_hil_id=str(escalated.id))
+        logger.info("hil_escalated: from_hil_id=%s to_hil_id=%s", hil_id, escalated.id)
         return escalated
 
     async def expire_stale(self) -> int:
@@ -133,5 +133,5 @@ class HILService:
             req.status = "expired"
             count += 1
         await self._db.commit()
-        logger.info("hil_expired_stale", count=count)
+        logger.info("hil_expired_stale: count=%s", count)
         return count

@@ -258,7 +258,7 @@ class ValidationPipeline:
             try:
                 gate_result = await gate.evaluate(document_data, {})
             except Exception as exc:
-                logger.error("gate_error", gate=gate.name, error=str(exc))
+                logger.error("gate_error: gate=%s error=%s", gate.name, exc)
                 gate_result = GateResult(
                     gate=gate.name,
                     passed=False,

@@ -40,8 +40,8 @@ class MemoryService:
             embeddings = await self._embedding_client.embed_texts([content])
             embedding = embeddings[0] if embeddings else []
         except Exception as exc:
-            logger.error("embedding_failed", error=str(exc))
-            embedding = []
+            logger.error("embedding_failed: %s", exc)
+            embedding = None
 
         content_dict = {"text": content, **(metadata or {})}
         content_hash = hashlib.sha256(content.encode()).hexdigest()
@@ -61,7 +61,7 @@ class MemoryService:
         self._db.add(entry)
         await self._db.commit()
         await self._db.refresh(entry)
-        logger.info("memory_ingest", entry_id=str(entry.id), memory_type=memory_type.value)
+        logger.info("memory_ingest: entry_id=%s memory_type=%s", entry.id, memory_type.value)
         await self._maybe_consolidate()
         return entry
 
@@ -75,8 +75,8 @@ class MemoryService:
             embeddings = await self._embedding_client.embed_texts([query])
             query_embedding = embeddings[0] if embeddings else []
         except Exception as exc:
-            logger.error("embedding_failed_search", error=str(exc))
-            query_embedding = []
+            logger.error("embedding_failed_search: %s", exc)
+            query_embedding = None
 
         if not query_embedding:
             stmt = (
@@ -130,7 +130,7 @@ class MemoryService:
             embeddings = await self._embedding_client.embed_texts([summary_content])
             summary_embedding = embeddings[0] if embeddings else []
         except Exception:
-            summary_embedding = []
+            summary_embedding = None
 
         summary_hash = hashlib.sha256(summary_content.encode()).hexdigest()
         summary = MemoryEntry(
@@ -177,7 +177,7 @@ class MemoryService:
                     entry.ttl_seconds = self.LTM_TTL_SECONDS
                     decayed += 1
         await self._db.commit()
-        logger.info("memory_decay_applied", decayed_count=decayed)
+        logger.info("memory_decay_applied: decayed_count=%s", decayed)
         return decayed
 
     async def promote_to_ltm(self, entry_id: Any) -> bool:
@@ -187,7 +187,7 @@ class MemoryService:
         entry.ttl_seconds = self.LTM_TTL_SECONDS
         entry.priority = 5
         await self._db.commit()
-        logger.info("memory_promoted_to_ltm", entry_id=str(entry.id))
+        logger.info("memory_promoted_to_ltm: entry_id=%s", entry.id)
         return True
 
     async def delete_expired(self) -> int:
@@ -201,5 +201,5 @@ class MemoryService:
         result = await self._db.execute(stmt)
         await self._db.commit()
         count = result.rowcount or 0
-        logger.info("memory_expired_deleted", count=count)
+        logger.info("memory_expired_deleted: count=%s", count)
         return count
