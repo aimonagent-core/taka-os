@@ -2,10 +2,13 @@
 // Purpose: Root App component with ErrorBoundary, routes, and auth context
 // Dependencies: react-router-dom, ./components/ErrorBoundary, ./components/AuthContext
 
-import React from "react";
+import { FC } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./components/AuthContext";
+import DocumentUpload from "./components/documents/DocumentUpload";
+import MemorySearch from "./components/memory/MemorySearch";
+import HILDashboard from "./components/hil/HILDashboard";
 
 function Home() {
   return <div><h1>TAKA Platform</h1><p>Welcome to TAKA.</p></div>;
@@ -27,7 +30,7 @@ function Dashboard() {
       {user ? <p>Welcome, {user.email}</p> : <p>Please log in.</p>}
     </div>
   );
-}
+};
 
 function AdminUsers() {
   return <div><h2>Admin - Users</h2></div>;
@@ -35,6 +38,33 @@ function AdminUsers() {
 
 function AdminTenants() {
   return <div><h2>Admin - Tenants</h2></div>;
+}
+
+function DocumentsPage() {
+  return (
+    <div>
+      <h2>Documents</h2>
+      <DocumentUpload />
+    </div>
+  );
+}
+
+function MemoryPage() {
+  return (
+    <div>
+      <h2>Memory</h2>
+      <MemorySearch />
+    </div>
+  );
+}
+
+function HILPage() {
+  return (
+    <div>
+      <h2>Human-in-the-Loop</h2>
+      <HILDashboard />
+    </div>
+  );
 }
 
 function Nav() {
@@ -53,6 +83,9 @@ function Nav() {
           <Link to="/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Dashboard</Link>
           <Link to="/admin/users" style={{ color: "#fff", marginRight: "1rem" }}>Users</Link>
           <Link to="/admin/tenants" style={{ color: "#fff", marginRight: "1rem" }}>Tenants</Link>
+          <Link to="/documents" style={{ color: "#fff", marginRight: "1rem" }}>Documents</Link>
+          <Link to="/memory" style={{ color: "#fff", marginRight: "1rem" }}>Memory</Link>
+          <Link to="/hil" style={{ color: "#fff", marginRight: "1rem" }}>HIL</Link>
           <button onClick={logout}>Logout</button>
         </>
       )}
@@ -60,7 +93,7 @@ function Nav() {
   );
 }
 
-export default function App() {
+const App: FC = () => {
   return (
     <ErrorBoundary>
       <AuthProvider>
@@ -74,10 +107,15 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/tenants" element={<AdminTenants />} />
+              <Route path="/documents" element={<DocumentsPage />} />
+              <Route path="/memory" element={<MemoryPage />} />
+              <Route path="/hil" element={<HILPage />} />
             </Routes>
           </main>
         </div>
       </AuthProvider>
     </ErrorBoundary>
   );
-}
+};
+
+export default App;

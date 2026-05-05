@@ -219,3 +219,9 @@ __marimo__/
 
 # Dossiers résiduels agents (pas de docs dans le repo)
 app/_1.*/
+
+# macOS
+.DS_Store
+
+# Node
+node_modules/

@@ -2,7 +2,7 @@
 // Purpose: React Error Boundary with Sentry error reporting
 // Dependencies: @sentry/react, react
 
-import React, { Component, ReactNode } from "react";
+import { Component, type ReactNode, type ErrorInfo } from "react";
 import * as Sentry from "@sentry/react";
 
 interface Props {
@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     Sentry.captureException(error, {
       extra: { componentStack: errorInfo.componentStack },
     });

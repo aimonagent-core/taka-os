@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     mfa_enabled: bool = True
     mfa_issuer_name: str = "TAKA Platform"
 
+    mistral_api_key: str | None = None
+    mistral_base_url: str = "https://api.mistral.ai/v1"
+    mistral_primary_model: str = "mistral-medium-latest"
+    mistral_fallback_model: str = "mistral-small-latest"
+
     s3_backup_bucket: str | None = None
     s3_backup_endpoint: str | None = None
     aws_access_key_id: str | None = None

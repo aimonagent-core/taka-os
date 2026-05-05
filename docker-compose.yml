@@ -6,19 +6,19 @@ services:
     container_name: taka-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: taka
-      POSTGRES_PASSWORD: taka_password
-      POSTGRES_DB: taka_db
+      POSTGRES_USER: ${POSTGRES_USER:-takaos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-takaos_password_123}
+      POSTGRES_DB: ${POSTGRES_DB:-takaos}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U taka -d taka_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-takaos} -d ${POSTGRES_DB:-takaos}"]
       interval: 10s
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - taka-network
 
@@ -32,7 +32,7 @@ services:
       timeout: 3s
       retries: 5
     ports:
-      - "6379:6379"
+      - "6380:6379"
     networks:
       - taka-network
 
@@ -50,8 +50,9 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://taka:taka_password@db:5432/taka_db
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-takaos}:${POSTGRES_PASSWORD:-takaos_password_123}@db:5432/${POSTGRES_DB:-takaos}
       - REDIS_URL=redis://redis:6379/0
+      - DEBUG=false
     ports:
       - "8000:8000"
     volumes:
@@ -75,15 +76,11 @@ services:
     depends_on:
       - backend
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
       - VITE_API_URL=http://localhost:8000/api/v1
-    volumes:
-      - ./frontend:/app:cached
-      - /app/node_modules
     networks:
       - taka-network
-    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   pgdata:

@@ -24,10 +24,20 @@ python-dotenv = "^1.0.0"
 
 # NOUVEAUX PACKAGES DE PRODUCTION
 sentry-sdk = { extras = ["fastapi"], version = "^2.0.0" }
-slowapi = "^0.1.10"
+slowapi = "^0.1.9"
+redis = "^5.0.0"
 pyotp = "^2.9.0"
 qrcode = { extras = ["pil"], version = "^7.4.2" }
 pybreaker = "^0.8.0"
+structlog = "^24.1.0"
+tenacity = "^8.2.0"
+pypdf = "^4.0.0"
+pdfplumber = "^0.10.0"
+pdf2image = "^1.17.0"
+pytesseract = "^0.3.10"
+pillow = "^10.0.0"
+numpy = "^1.26.0"
+dateparser = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"

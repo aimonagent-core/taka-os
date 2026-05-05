@@ -2,7 +2,7 @@
 // Purpose: Authentication context provider
 // Dependencies: react
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 interface User {
   id: string;

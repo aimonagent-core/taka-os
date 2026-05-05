@@ -1,6 +1,6 @@
 # File: app/models/ao.py
 # Purpose: Core SQLAlchemy models with roles, tenants, audit, memory, and feature flags
-# Dependencies: app.database.Base, pgvector.sqlalchemy.Vector, sqlalchemy.orm, app.core.audit.compute_audit_hash
+# Dependencies: app.database.Base, pgvector.sqlalchemy.Vector, sqlalchemy.orm
 
 import enum
 import uuid
@@ -63,6 +63,24 @@ class AuditAction(str, enum.Enum):
     MFA_DISABLED = "mfa_disabled"
     INVITATION_SENT = "invitation_sent"
     INVITATION_ACCEPTED = "invitation_accepted"
+
+
+class MemoryType(str, enum.Enum):
+    EPISODIC = "episodic"
+    SEMANTIC = "semantic"
+    PROCEDURAL = "procedural"
+    TRANSACTIONAL = "transactional"
+
+
+class DocumentStatus(str, enum.Enum):
+    PENDING = "pending"
+    PARSING = "parsing"
+    EXTRACTING = "extracting"
+    VALIDATING = "validating"
+    REVIEW = "review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    ERROR = "error"
 
 
 class Tenant(Base):
@@ -128,6 +146,8 @@ class User(Base):
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_backup_codes_hash: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -153,6 +173,9 @@ class User(Base):
     )
     memory_entries: Mapped[list["MemorySession"]] = relationship(
         "MemorySession", back_populates="user"
+    )
+    documents: Mapped[list["Document"]] = relationship(
+        "Document", back_populates="user"
     )
 
 
@@ -403,6 +426,173 @@ class StateSnapshot(Base):
     )
 
 
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
+    )
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    file_path: Mapped[str] = mapped_column(Text, nullable=False)
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(64), nullable=False, default="application/pdf")
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[DocumentStatus] = mapped_column(
+        Enum(DocumentStatus), nullable=False, default=DocumentStatus.PENDING
+    )
+    parse_level_reached: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    parse_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    extracted_entities: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    validation_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    processing_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="documents")
+    chunks: Mapped[list["DocumentChunk"]] = relationship(
+        "DocumentChunk", back_populates="document", cascade="all, delete-orphan"
+    )
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False, index=True
+    )
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    document: Mapped["Document"] = relationship("Document", back_populates="chunks")
+
+
+class MemoryEntry(Base):
+    __tablename__ = "memory_entries"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    memory_type: Mapped[MemoryType] = mapped_column(String(32), nullable=False, index=True)
+    content: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1024), nullable=True)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    ttl_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    access_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_accessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decay_factor: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    consolidated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class MemoryConsolidation(Base):
+    __tablename__ = "memory_consolidations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    memory_entry_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("memory_entries.id"), nullable=False, index=True
+    )
+    from_entries: Mapped[list[uuid.UUID]] = mapped_column(JSON, nullable=False)
+    consolidation_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    previous_version: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class ValidationAudit(Base):
+    __tablename__ = "validation_audit"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    gate_name: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    output_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    detail: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    extra_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    execution_time_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class HumanDecision(Base):
+    __tablename__ = "human_decisions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    autonomy_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    decision_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    decision_value: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
+    )
+    context_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class HILRequest(Base):
+    __tablename__ = "hil_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    autonomy_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    decision_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    context: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    decided_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    decision_value: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
 class AO(Base):
     __tablename__ = "ao"
 
@@ -429,11 +619,12 @@ class AO(Base):
     )
 
     tenant: Mapped["Tenant"] = relationship("Tenant")
-    documents: Mapped[list["Document"]] = relationship("Document", back_populates="ao")
+    documents: Mapped[list["DocumentAO"]] = relationship("DocumentAO", back_populates="ao")
 
 
-class Document(Base):
-    __tablename__ = "documents"
+class DocumentAO(Base):
+    """Legacy Document model renamed to avoid conflict with new Document model."""
+    __tablename__ = "ao_documents"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -507,7 +698,7 @@ class Message(Base):
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False
     )
-    role: Mapped[str] = mapped_column(String(50), nullable=False)  # user, assistant, system
+    role: Mapped[str] = mapped_column(String(50), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     vector_embedding: Mapped[Any | None] = mapped_column(Vector(1536), nullable=True)
     extra_metadata: Mapped[dict | None] = mapped_column(JSON)

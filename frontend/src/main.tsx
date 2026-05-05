@@ -2,7 +2,7 @@
 // Purpose: React application entry point with Sentry initialization
 // Dependencies: @sentry/react, react-router-dom
 
-import React from "react";
+import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import { BrowserRouter } from "react-router-dom";
@@ -32,9 +32,9 @@ if (SENTRY_DSN) {
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  <StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>
+  </StrictMode>
 );
