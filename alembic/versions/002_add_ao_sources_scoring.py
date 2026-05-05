@@ -163,7 +163,7 @@ def upgrade():
         ),
         sa.Column("chunk_text", sa.Text(), nullable=False),
         sa.Column("chunk_index", sa.Integer(), nullable=False),
-        sa.Column("embedding", Vector(768), nullable=True),
+        sa.Column("embedding", Vector(1024), nullable=True),
         sa.Column("extra_metadata", sa.JSON(), nullable=True),
         sa.Column(
             "created_at",

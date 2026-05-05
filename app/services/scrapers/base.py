@@ -3,7 +3,7 @@ import asyncio
 import logging
 import random
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -98,11 +98,17 @@ class BaseScraper(ABC):
         pass
 
     async def health_check(self) -> dict:
-        """Verifie que la source est accessible."""
+        """Verifie que la source est accessible (HEAD puis fallback GET)."""
         try:
-            start = datetime.utcnow()
+            start = datetime.now(timezone.utc)
             await self._fetch(self.base_url, method="HEAD")
-            latency = int((datetime.utcnow() - start).total_seconds() * 1000)
+            latency = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
             return {"ok": True, "latency_ms": latency, "error": None}
-        except Exception as e:
-            return {"ok": False, "latency_ms": 0, "error": str(e)}
+        except Exception:
+            try:
+                start = datetime.now(timezone.utc)
+                await self._fetch(self.base_url, method="GET")
+                latency = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
+                return {"ok": True, "latency_ms": latency, "error": None}
+            except Exception as e:
+                return {"ok": False, "latency_ms": 0, "error": str(e)}

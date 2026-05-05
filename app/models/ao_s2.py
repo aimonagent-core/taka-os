@@ -170,7 +170,7 @@ class AOChunk(Base):
     )
     chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(768), nullable=True)
+    embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1024), nullable=True)
     extra_metadata: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(

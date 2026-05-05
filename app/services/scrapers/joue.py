@@ -1,7 +1,7 @@
 """Scraper JOUE / TED (Journal Officiel de l'Union Europeenne)."""
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from .base import BaseScraper, RawAOData
@@ -20,7 +20,7 @@ class JOUEScraper(BaseScraper):
         max_pages = 10
 
         if not since:
-            since = datetime.utcnow() - timedelta(days=7)
+            since = datetime.now(timezone.utc) - timedelta(days=7)
 
         search_body = {
             "page": page,

@@ -1,6 +1,6 @@
 """Sécurité — JWT + bcrypt + MFA TOTP (sans passlib, bug bcrypt 72 bytes)."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import bcrypt
 import pyotp
@@ -42,9 +42,9 @@ def create_access_token(
     if extra_claims:
         to_encode.update(extra_claims)
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     to_encode.setdefault("type", "access")
     return jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
@@ -57,7 +57,7 @@ def create_refresh_token(data: dict = None, subject: str = None) -> str:
     to_encode = data.copy()
     if subject is not None:
         to_encode.update({"sub": subject})
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
     return jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
 

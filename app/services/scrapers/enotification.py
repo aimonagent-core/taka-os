@@ -1,6 +1,6 @@
 """Scraper e-Notification (Belgique)."""
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from .base import BaseScraper, RawAOData
@@ -16,7 +16,7 @@ class ENotificationScraper(BaseScraper):
     async def scan(self, since: Optional[datetime] = None) -> list[RawAOData]:
         results = []
         if not since:
-            since = datetime.utcnow() - timedelta(days=7)
+            since = datetime.now(timezone.utc) - timedelta(days=7)
 
         params = {
             "since": since.strftime("%Y-%m-%dT%H:%M:%S"),

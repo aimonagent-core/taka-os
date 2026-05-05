@@ -81,7 +81,18 @@ class MistralAIClient:
         )
         response.raise_for_status()
         data = response.json()
-        return [item["embedding"] for item in data["data"]]
+        embeddings = [item["embedding"] for item in data["data"]]
+        for i, emb in enumerate(embeddings):
+            if len(emb) != 1024:
+                logger.error(
+                    "[Mistral] Dimension inattendue : %s (attendu 1024) pour le texte %s",
+                    len(emb),
+                    i,
+                )
+                raise RuntimeError(
+                    f"Mistral embedding dimension mismatch : {len(emb)} != 1024"
+                )
+        return embeddings
 
     async def close(self) -> None:
         await self._client.aclose()

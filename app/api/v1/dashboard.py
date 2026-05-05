@@ -1,17 +1,32 @@
 """Routes API pour le Dashboard Admin."""
+import asyncio
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.veilleur.agent import VeilleurAgent
 from app.database import get_db
 from app.dependencies import get_current_user
+from app.models.ao_s2 import Source
 from app.models.ao import User
 from app.services.dashboard.kpis import DashboardKPIs
 from app.services.plan_feature_flags import FeatureFlagService
+from app.services.scrapers.base import BaseScraper
+from app.services.scrapers.boamp import BOAMPScraper
+from app.services.scrapers.enotification import ENotificationScraper
+from app.services.scrapers.joue import JOUEScraper
+from app.services.scrapers.marche_public import MarchePublicScraper
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+SCRAPER_REGISTRY = {
+    "boamp": BOAMPScraper,
+    "joue": JOUEScraper,
+    "enotification": ENotificationScraper,
+    "marche_public": MarchePublicScraper,
+}
 
 
 def _get_tenant_tier(user: User) -> str:
@@ -63,7 +78,41 @@ async def sources_health(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Verifie l'etat de sante de toutes les sources de veille."""
-    agent = VeilleurAgent()
-    checks = await agent.health_check(db)
-    return {"sources": checks}
+    """Verifie l'etat de sante de toutes les sources de veille (parallele, timeout 5s)."""
+    stmt = select(Source).where(Source.is_active == True)
+    rows = await db.execute(stmt)
+    sources = rows.scalars().all()
+
+    async def check_one(source: Source) -> dict:
+        scraper_class = SCRAPER_REGISTRY.get(source.name)
+        if not scraper_class:
+            return {
+                "name": source.name,
+                "ok": False,
+                "latency_ms": 0,
+                "error": "Scraper non implemente",
+            }
+        try:
+            async with scraper_class(
+                {"name": source.name, "base_url": source.base_url}
+            ) as scraper:
+                result = await asyncio.wait_for(scraper.health_check(), timeout=5.0)
+                result["name"] = source.name
+                return result
+        except asyncio.TimeoutError:
+            return {
+                "name": source.name,
+                "ok": False,
+                "latency_ms": 5000,
+                "error": "Timeout apres 5 secondes",
+            }
+        except Exception as e:
+            return {
+                "name": source.name,
+                "ok": False,
+                "latency_ms": 0,
+                "error": str(e),
+            }
+
+    results = await asyncio.gather(*[check_one(s) for s in sources])
+    return {"sources": results, "checked_at": datetime.now(timezone.utc).isoformat()}

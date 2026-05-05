@@ -3,7 +3,7 @@
 # Dependencies: datetime, structlog, app.models.ao
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -74,7 +74,7 @@ class AutonomyEngine:
                     "hil_reasons": hil_reasons,
                 },
                 status="pending",
-                expires_at=datetime.utcnow() + timedelta(hours=48),
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=48),
             )
             self._db.add(hil)
             await self._db.commit()

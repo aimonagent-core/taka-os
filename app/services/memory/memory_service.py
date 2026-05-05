@@ -3,7 +3,7 @@
 # Dependencies: datetime, structlog, app.models.ao
 
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Sequence
 
 import logging
@@ -148,7 +148,7 @@ class MemoryService:
         await self._db.flush()
 
         for entry in batch:
-            entry.consolidated_at = datetime.utcnow()
+            entry.consolidated_at = datetime.now(timezone.utc)
             entry.ttl_seconds = self.IM_TTL_SECONDS
 
         await self._db.commit()
@@ -159,7 +159,7 @@ class MemoryService:
         )
 
     async def apply_decay(self) -> int:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         half_life = timedelta(days=self.DECAY_HALF_LIFE_DAYS)
         stmt = select(MemoryEntry).where(
             MemoryEntry.ttl_seconds.isnot(None),
@@ -191,7 +191,7 @@ class MemoryService:
         return True
 
     async def delete_expired(self) -> int:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         from sqlalchemy import delete
 
         stmt = delete(MemoryEntry).where(

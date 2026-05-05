@@ -6,7 +6,7 @@ import enum
 import hashlib
 import json
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -113,7 +113,7 @@ class FreshnessGate(Gate):
                 gate=self.name, passed=False, score=0.0, threshold=self.threshold,
                 details={"error": "no_deadline"}, retryable=False,
             )
-        now = datetime.utcnow().date()
+        now = datetime.now(timezone.utc).date()
         if isinstance(deadline, str):
             from datetime import date as dt_date
             try:
@@ -251,10 +251,10 @@ class ValidationPipeline:
         total_weight = sum(g.weight for g in self._gates)
         weighted_score = 0.0
         any_retryable = False
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
 
         for gate in self._gates:
-            gate_start = datetime.utcnow()
+            gate_start = datetime.now(timezone.utc)
             try:
                 gate_result = await gate.evaluate(document_data, {})
             except Exception as exc:
@@ -272,7 +272,7 @@ class ValidationPipeline:
             if gate_result.retryable:
                 any_retryable = True
 
-            gate_time_ms = int((datetime.utcnow() - gate_start).total_seconds() * 1000)
+            gate_time_ms = int((datetime.now(timezone.utc) - gate_start).total_seconds() * 1000)
             input_data = json.dumps(document_data, sort_keys=True, default=str)
             output_data = json.dumps(gate_result.details, sort_keys=True, default=str)
             audit = ValidationAudit(

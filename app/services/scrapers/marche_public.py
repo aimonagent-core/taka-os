@@ -1,7 +1,7 @@
 """Scraper Marches Publics .gov.ma (Maroc)."""
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from bs4 import BeautifulSoup
@@ -19,7 +19,7 @@ class MarchePublicScraper(BaseScraper):
     async def scan(self, since: Optional[datetime] = None) -> list[RawAOData]:
         results = []
         if not since:
-            since = datetime.utcnow() - timedelta(days=7)
+            since = datetime.now(timezone.utc) - timedelta(days=7)
 
         try:
             response = await self._fetch(f"{self.base_url}{self.LIST_PATH}")

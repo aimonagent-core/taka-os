@@ -2,7 +2,7 @@
 # Purpose: Human-in-the-loop request service
 # Dependencies: datetime, structlog, app.models.ao
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
 
@@ -36,7 +36,7 @@ class HILService:
             decision_type=decision_type,
             context=context,
             status="pending",
-            expires_at=datetime.utcnow() + timedelta(hours=expires_hours),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=expires_hours),
         )
         self._db.add(hil)
         await self._db.commit()
@@ -47,7 +47,7 @@ class HILService:
     async def get_pending(self, user_id: UUID | None = None) -> list[HILRequest]:
         stmt = select(HILRequest).where(
             HILRequest.status == "pending",
-            HILRequest.expires_at > datetime.utcnow(),
+            HILRequest.expires_at > datetime.now(timezone.utc),
         )
         result = await self._db.execute(stmt)
         return list(result.scalars().all())
@@ -64,14 +64,14 @@ class HILService:
             raise ValueError(f"HIL request {hil_id} not found")
         if hil.status != "pending":
             raise ValueError(f"HIL request {hil_id} is not pending")
-        if datetime.utcnow() > hil.expires_at:
+        if datetime.now(timezone.utc) > hil.expires_at:
             hil.status = "expired"
             await self._db.commit()
             raise ValueError(f"HIL request {hil_id} has expired")
 
         hil.status = "resolved"
         hil.decided_by = resolver_id
-        hil.decided_at = datetime.utcnow()
+        hil.decided_at = datetime.now(timezone.utc)
         hil.decision_value = {"decision": decision, "notes": notes}
         await self._db.commit()
         await self._db.refresh(hil)
@@ -89,7 +89,7 @@ class HILService:
             raise ValueError(f"HIL request {hil_id} not found")
         hil.status = "rejected"
         hil.decided_by = resolver_id
-        hil.decided_at = datetime.utcnow()
+        hil.decided_at = datetime.now(timezone.utc)
         hil.decision_value = {"decision": "rejected", "notes": reason}
         await self._db.commit()
         await self._db.refresh(hil)
@@ -112,7 +112,7 @@ class HILService:
                 "escalation_reason": reason,
             },
             status="pending",
-            expires_at=datetime.utcnow() + timedelta(hours=self.DEFAULT_EXPIRY_HOURS),
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=self.DEFAULT_EXPIRY_HOURS),
         )
         self._db.add(escalated)
         await self._db.commit()
@@ -121,7 +121,7 @@ class HILService:
         return escalated
 
     async def expire_stale(self) -> int:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         stmt = select(HILRequest).where(
             HILRequest.status == "pending",
             HILRequest.expires_at <= now,
