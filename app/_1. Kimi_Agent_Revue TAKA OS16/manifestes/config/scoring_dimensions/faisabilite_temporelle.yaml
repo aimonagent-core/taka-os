@@ -1,0 +1,58 @@
+dimension_id: "faisabilite_temporelle"
+name: "Faisabilite Temporelle"
+version: 1
+input_schema:
+  - ao.date_publication
+  - ao.date_limite
+  - ao.date_debut_prestation
+  - ao.duree_mois
+  - ao.complexite_estimee
+  - enterprise.delai_preparation_jours
+  - enterprise.avg_response_time_days
+  - enterprise.current_workload
+  - jours_restants
+rules:
+  - condition: "jours_restants < enterprise.delai_preparation_jours"
+    action: "score = 5"
+    score_value: 5.0
+    strict: false
+    explanation_template: "Delai insuffisant pour preparer une reponse de qualite — risque eleve"
+
+  - condition: "jours_restants > enterprise.delai_preparation_jours * 2"
+    action: "score = 100"
+    score_value: 100.0
+    strict: false
+    explanation_template: "Delai confortable (>2x le delai de preparation) — score maximal"
+
+  - condition: "jours_restants < 7"
+    action: "score -= 40"
+    score_value: 40.0
+    strict: false
+    explanation_template: "Moins de 7 jours restants — urgence extreme, qualite compromise (-40)"
+
+  - condition: "enterprise.current_workload > 0.8"
+    action: "score -= 25"
+    score_value: 25.0
+    strict: false
+    explanation_template: "Charge de travail > 80% — capacite limitee pour repondre (-25)"
+
+  - condition: "ao.complexite_estimee == 'elevee' and jours_restants < 14"
+    action: "score -= 30"
+    score_value: 30.0
+    strict: false
+    explanation_template: "AO complexe avec moins de 14 jours — preparation inadequate (-30)"
+
+  - condition: "enterprise.avg_response_time_days < jours_restants * 0.5"
+    action: "score += 15"
+    score_value: 15.0
+    strict: false
+    explanation_template: "Historique de reponse rapide par rapport au delai disponible (+15)"
+
+  - condition: "ao.duree_mois > 24 and enterprise.pmi_flag"
+    action: "score -= 15"
+    score_value: 15.0
+    strict: false
+    explanation_template: "Prestation longue (>24 mois) pour une PMI — risque ressources (-15)"
+
+default_score: 50.0
+default_weight: 0.20

@@ -1,0 +1,51 @@
+dimension_id: "accessibilite_geographique"
+name: "Accessibilite Geographique"
+version: 1
+input_schema:
+  - ao.location
+  - ao.region
+  - ao.departement
+  - ao.is_remote_accepted
+  - enterprise.zones_intervention
+  - enterprise.departements_couverts
+  - enterprise.siege_social
+  - distance_km
+rules:
+  - condition: "ao.region not in enterprise.zones_intervention"
+    action: "score = 0"
+    score_value: 0.0
+    strict: true
+    explanation_template: "Region {ao.region} hors zones d'intervention — elimination (score 0, strict)"
+
+  - condition: "distance_km > 300"
+    action: "score = 5"
+    score_value: 5.0
+    strict: false
+    explanation_template: "Distance > 300km — accessibilite tres difficile"
+
+  - condition: "distance_km > 200"
+    action: "score -= 30"
+    score_value: 30.0
+    strict: false
+    explanation_template: "Distance > 200km — cout logistique eleve (-30)"
+
+  - condition: "distance_km <= 50"
+    action: "score += 30"
+    score_value: 30.0
+    strict: false
+    explanation_template: "Proximite geographique < 50km — avantage concurrentiel (+30)"
+
+  - condition: "ao.is_remote_accepted and enterprise.has_remote_capability"
+    action: "score += 20"
+    score_value: 20.0
+    strict: false
+    explanation_template: "Teletravail accepte et capacite confirmee — flexibilite geographique (+20)"
+
+  - condition: "ao.departement in enterprise.departements_couverts"
+    action: "score += 15"
+    score_value: 15.0
+    strict: false
+    explanation_template: "Departement {ao.departement} couvert par l'entreprise (+15)"
+
+default_score: 60.0
+default_weight: 0.15

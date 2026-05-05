@@ -1,0 +1,63 @@
+dimension_id: "intelligence_concurrentielle"
+name: "Intelligence Concurrentielle"
+version: 1
+input_schema:
+  - ao.nb_concurrents_estime
+  - ao.barrieres_entree
+  - ao.type_marche
+  - ao.avis_precedent_exists
+  - enterprise.positionnement
+  - enterprise.certifications
+  - enterprise.references_significatives
+  - enterprise.past_wins_same_type
+rules:
+  - condition: "ao.nb_concurrents_estime > 15"
+    action: "score = 10"
+    score_value: 10.0
+    strict: false
+    explanation_template: "Plus de 15 concurrents estimes — concurrence intense, faible probabilite"
+
+  - condition: "ao.nb_concurrents_estime > 10"
+    action: "score -= 30"
+    score_value: 30.0
+    strict: false
+    explanation_template: "10 a 15 concurrents — forte concurrence (-30)"
+
+  - condition: "ao.nb_concurrents_estime <= 5"
+    action: "score += 25"
+    score_value: 25.0
+    strict: false
+    explanation_template: "Moins de 5 concurrents estimes — niche interessante (+25)"
+
+  - condition: "ao.barrieres_entree == 'elevee' and len(enterprise.certifications) >= 3"
+    action: "score += 25"
+    score_value: 25.0
+    strict: false
+    explanation_template: "Barrieres a l'entree elevees et certifications solides — avantage competitif (+25)"
+
+  - condition: "ao.barrieres_entree == 'faible' and enterprise.positionnement == 'premium'"
+    action: "score -= 20"
+    score_value: 20.0
+    strict: false
+    explanation_template: "Positionnement premium sur marche sans barrieres — desavantage (-20)"
+
+  - condition: "ao.type_marche in enterprise.past_wins_same_type"
+    action: "score += 15"
+    score_value: 15.0
+    strict: false
+    explanation_template: "Type de marche deja remporte par le passe — experience validee (+15)"
+
+  - condition: "enterprise.references_significatives >= 3 and ao.estimated_amount > 100000"
+    action: "score += 20"
+    score_value: 20.0
+    strict: false
+    explanation_template: "References significatives pour un gros montant — credibilite (+20)"
+
+  - condition: "ao.avis_precedent_exists and ao.past_award_price"
+    action: "score += 10"
+    score_value: 10.0
+    strict: false
+    explanation_template: "Avis precedent disponible avec prix d'attribution — intelligence concurrentielle (+10)"
+
+default_score: 40.0
+default_weight: 0.15

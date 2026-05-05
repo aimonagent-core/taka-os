@@ -1,0 +1,892 @@
+{
+  "manifest_version": "1.0.0",
+  "project": {
+    "name": "TAKA OS",
+    "description": "OS agentic open source (MIT) verticalise sur les Appels d'Offres publics pour les PME du BTP. 30 agents IA repartis sur 11 pôles, activation progressive en 4 phases.",
+    "version": "1.0.0-MVP",
+    "license": "MIT",
+    "phase": "pre-development",
+    "url": "https://takaos.io",
+    "repository": "https://github.com/takaos/takaos"
+  },
+  "swarm": {
+    "total_agents": 30,
+    "total_poles": 11,
+    "activation_phases": 4,
+    "critical_agents": 12,
+    "important_agents": 13,
+    "nice_to_have_agents": 3,
+    "outsourceable_agents": 3,
+    "total_workstreams": 34,
+    "ceo_is_human": true,
+    "cto_is_orchestrator": true
+  },
+  "poles": [
+    {
+      "id": "01_direction",
+      "name": "Direction Strategique",
+      "description": "Vision, strategie et gouvernance globale du projet",
+      "agent_count": 2,
+      "phase_activation": "P1",
+      "agents": [
+        {
+          "id": "agent_001",
+          "title": "CTO",
+          "full_title": "Chief Technology Officer",
+          "level": "C-Level",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "CEO",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15","C16","C17","C19"],
+          "is_orchestrator": true
+        },
+        {
+          "id": "agent_002",
+          "title": "COO",
+          "full_title": "Chief Operating Officer",
+          "level": "C-Level",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Semaine 2",
+          "reports_to": "CEO",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C31","C33","C34"]
+        }
+      ]
+    },
+    {
+      "id": "02_produit",
+      "name": "Produit & UX",
+      "description": "Vision produit, roadmap, specifications fonctionnelles et experience utilisateur",
+      "agent_count": 3,
+      "phase_activation": "P1",
+      "agents": [
+        {
+          "id": "agent_003",
+          "title": "CPO",
+          "full_title": "Chief Product Officer",
+          "level": "C-Level",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "CEO",
+          "location": "France — Presentiel privilegie",
+          "workstreams": ["C1","C2","C3","C4","C5","C6","C7","C8","C9","C10","C11","C12","C13","C14","C15","C16","C17","C18","C19","C20","C21","C22","C23","C24","C25","C26"]
+        },
+        {
+          "id": "agent_004",
+          "title": "PM — AO Vertical",
+          "full_title": "Product Manager — Appels d'Offres",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_003 (CPO)",
+          "location": "France — Remote possible",
+          "workstreams": ["C5","C6","C7","C8","C9","C13","C14","C15","C16","C17"]
+        },
+        {
+          "id": "agent_005",
+          "title": "UX/UI Designer",
+          "full_title": "UX/UI Designer",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_004 (PM_AO) — dotted line",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C10","C19"]
+        }
+      ]
+    },
+    {
+      "id": "03_eng_backend",
+      "name": "Engineering — Backend",
+      "description": "Architecture backend, API, base de donnees, agents metier, DevOps",
+      "agent_count": 5,
+      "phase_activation": "P1 (3 agents) / P2 (2 agents)",
+      "agents": [
+        {
+          "id": "agent_006",
+          "title": "Lead Backend Engineer",
+          "full_title": "Lead Backend Engineer",
+          "level": "Senior (Lead)",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_001 (CTO)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C1","C2","C3","C4","C11","C12"]
+        },
+        {
+          "id": "agent_007",
+          "title": "Backend Engineer — Kernel & Auth",
+          "full_title": "Backend Engineer — Kernel, Auth & Securite",
+          "level": "Senior",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_006 (Lead Backend)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C1","C4"]
+        },
+        {
+          "id": "agent_008",
+          "title": "Backend Engineer — Agents & IA",
+          "full_title": "Backend Engineer — Agents & Intelligence Artificielle",
+          "level": "Senior",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_006 (Lead Backend)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C5","C6","C7","C8","C13","C14","C15"]
+        },
+        {
+          "id": "agent_009",
+          "title": "Backend Engineer — API & Data",
+          "full_title": "Backend Engineer — API REST & Donnees",
+          "level": "Senior",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_006 (Lead Backend)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C2","C3","C9"]
+        },
+        {
+          "id": "agent_010",
+          "title": "DevOps & Infra Engineer",
+          "full_title": "DevOps & Infrastructure Engineer",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_006 (Lead Backend)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C12"]
+        }
+      ]
+    },
+    {
+      "id": "04_eng_frontend",
+      "name": "Engineering — Frontend",
+      "description": "Interface utilisateur React, composants UI, state management, PWA",
+      "agent_count": 2,
+      "phase_activation": "P1",
+      "agents": [
+        {
+          "id": "agent_011",
+          "title": "Lead Frontend Engineer",
+          "full_title": "Lead Frontend Engineer",
+          "level": "Senior (Lead)",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_001 (CTO)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C10","C19"]
+        },
+        {
+          "id": "agent_012",
+          "title": "Frontend Engineer — UI/UX",
+          "full_title": "Frontend Engineer — Composants UI/UX",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_011 (Lead Frontend)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C10","C19"]
+        }
+      ]
+    },
+    {
+      "id": "05_ia_ml",
+      "name": "IA & Machine Learning",
+      "description": "Couche intelligence artificielle : NLP, scoring, embeddings, RAG, gouvernance LLM",
+      "agent_count": 4,
+      "phase_activation": "P1 (3 agents) / P2 (1 agent)",
+      "agents": [
+        {
+          "id": "agent_013",
+          "title": "Lead IA Engineer",
+          "full_title": "Lead IA Engineer",
+          "level": "Senior (Lead)",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_001 (CTO)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C6","C8","C11","C13","C14","C15"]
+        },
+        {
+          "id": "agent_014",
+          "title": "IA Engineer — NLP & Parsing",
+          "full_title": "IA Engineer — NLP, Parsing & Integration LLM",
+          "level": "Senior",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_013 (Lead IA)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C5","C11","C16","C17"]
+        },
+        {
+          "id": "agent_015",
+          "title": "IA Engineer — Scoring",
+          "full_title": "IA Engineer — Scoring, Qualification & TAKA LAB",
+          "level": "Senior",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_013 (Lead IA)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C6","C14"]
+        },
+        {
+          "id": "agent_016",
+          "title": "IA Engineer — Embeddings & RAG",
+          "full_title": "IA Engineer — Embeddings, RAG & Recherche Vectorielle",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_013 (Lead IA)",
+          "location": "France / Maroc — Remote",
+          "workstreams": ["C8","C15","C16"]
+        }
+      ]
+    },
+    {
+      "id": "06_gtm_france",
+      "name": "Go-to-Market France",
+      "description": "Strategie commerciale et deploiement marché francais",
+      "agent_count": 3,
+      "phase_activation": "P2",
+      "agents": [
+        {
+          "id": "agent_017",
+          "title": "Head of Sales France",
+          "full_title": "Head of Sales — France",
+          "level": "Head",
+          "criticality": "important",
+          "phase": "P2",
+          "phase_day": "Semaine 5",
+          "reports_to": "agent_002 (COO)",
+          "location": "France — Paris / Lyon / Remote",
+          "workstreams": ["C21","C25"]
+        },
+        {
+          "id": "agent_018",
+          "title": "SDR France",
+          "full_title": "Sales Development Representative — France",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P2",
+          "phase_day": "Semaine 5",
+          "reports_to": "agent_017 (Head Sales FR)",
+          "location": "France — Remote",
+          "workstreams": ["C21"]
+        },
+        {
+          "id": "agent_019",
+          "title": "CSM France",
+          "full_title": "Customer Success Manager — France",
+          "level": "Senior",
+          "criticality": "nice_to_have",
+          "phase": "P2",
+          "phase_day": "Semaine 8",
+          "reports_to": "agent_017 (Head Sales FR)",
+          "location": "France — Remote",
+          "workstreams": ["C26","C33"]
+        }
+      ]
+    },
+    {
+      "id": "07_gtm_maroc",
+      "name": "Go-to-Market Maroc",
+      "description": "Deploiement marché marocain, partenariats locaux, adaptation legale",
+      "agent_count": 3,
+      "phase_activation": "P3",
+      "agents": [
+        {
+          "id": "agent_024",
+          "title": "Country Manager Maroc",
+          "full_title": "Country Manager — Maroc",
+          "level": "Head",
+          "criticality": "outsourceable",
+          "phase": "P3",
+          "phase_day": "Semaine 13",
+          "reports_to": "agent_002 (COO)",
+          "location": "Maroc — Casablanca / Rabat",
+          "workstreams": ["C23"]
+        },
+        {
+          "id": "agent_025",
+          "title": "Sales Rep Maroc",
+          "full_title": "Sales Representative — Maroc",
+          "level": "Senior",
+          "criticality": "outsourceable",
+          "phase": "P3",
+          "phase_day": "Semaine 13",
+          "reports_to": "agent_024 (Country Manager MA)",
+          "location": "Maroc — Casablanca / Rabat",
+          "workstreams": ["C23"]
+        },
+        {
+          "id": "agent_026",
+          "title": "CSM Maroc",
+          "full_title": "Customer Success Manager — Maroc",
+          "level": "Senior",
+          "criticality": "outsourceable",
+          "phase": "P3",
+          "phase_day": "Semaine 16",
+          "reports_to": "agent_024 (Country Manager MA)",
+          "location": "Maroc — Casablanca / Rabat",
+          "workstreams": ["C23","C26"]
+        }
+      ]
+    },
+    {
+      "id": "08_marketing",
+      "name": "Marketing & Content",
+      "description": "Strategie marketing, brand, content, SEO, communaute open source",
+      "agent_count": 2,
+      "phase_activation": "P2",
+      "agents": [
+        {
+          "id": "agent_020",
+          "title": "Head of Marketing",
+          "full_title": "Head of Marketing & Growth",
+          "level": "Head",
+          "criticality": "important",
+          "phase": "P2",
+          "phase_day": "Semaine 5",
+          "reports_to": "agent_002 (COO)",
+          "location": "France — Remote",
+          "workstreams": ["C24","C25"]
+        },
+        {
+          "id": "agent_021",
+          "title": "Content Creator",
+          "full_title": "Content Creator & Community Manager",
+          "level": "Senior",
+          "criticality": "nice_to_have",
+          "phase": "P2",
+          "phase_day": "Semaine 6",
+          "reports_to": "agent_020 (Head Marketing)",
+          "location": "France — Remote",
+          "workstreams": ["C24"]
+        }
+      ]
+    },
+    {
+      "id": "09_juridique",
+      "name": "Juridique & Compliance",
+      "description": "Conformite reglementaire : AI Act, RGPD, marches publics, propriete intellectuelle",
+      "agent_count": 2,
+      "phase_activation": "P1 (1 agent) / P3 (1 agent)",
+      "agents": [
+        {
+          "id": "agent_027",
+          "title": "Legal & Compliance EU",
+          "full_title": "Legal & Compliance Officer — Europe",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "CEO",
+          "location": "France — Remote EU",
+          "workstreams": ["C27","C28","C29","C30"]
+        },
+        {
+          "id": "agent_028",
+          "title": "Legal & Compliance MA",
+          "full_title": "Legal & Compliance Officer — Maroc",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P3",
+          "phase_day": "Semaine 13",
+          "reports_to": "agent_027 (Legal EU) — dotted line",
+          "location": "Maroc — Casablanca / Rabat",
+          "workstreams": ["C28","C30"]
+        }
+      ]
+    },
+    {
+      "id": "10_finance",
+      "name": "Finance & Administration",
+      "description": "Gestion financiere, fundraising, comptabilite, operations administratives",
+      "agent_count": 2,
+      "phase_activation": "P3",
+      "agents": [
+        {
+          "id": "agent_029",
+          "title": "CFO",
+          "full_title": "Chief Financial Officer",
+          "level": "C-Level",
+          "criticality": "important",
+          "phase": "P3",
+          "phase_day": "Semaine 13",
+          "reports_to": "CEO",
+          "location": "France — Hybride Paris/Remote EU",
+          "workstreams": ["C31","C32"]
+        },
+        {
+          "id": "agent_030",
+          "title": "Office Manager / RH",
+          "full_title": "Office Manager & Responsable RH",
+          "level": "Senior",
+          "criticality": "nice_to_have",
+          "phase": "P3",
+          "phase_day": "Semaine 16",
+          "reports_to": "agent_029 (CFO) — dotted line",
+          "location": "France — Hybride",
+          "workstreams": []
+        }
+      ]
+    },
+    {
+      "id": "11_securite",
+      "name": "Securite & Protection des Donnees",
+      "description": "Cybersecurite, audit, pentests, conformite RGPD et Loi 09-08 Maroc",
+      "agent_count": 2,
+      "phase_activation": "P1 (1 agent) / P2 (1 agent)",
+      "agents": [
+        {
+          "id": "agent_022",
+          "title": "Security Officer",
+          "full_title": "Security Officer",
+          "level": "Senior",
+          "criticality": "critical",
+          "phase": "P1",
+          "phase_day": "Jour 1",
+          "reports_to": "agent_002 (COO)",
+          "location": "France — Remote",
+          "workstreams": ["C4","C12","C34"]
+        },
+        {
+          "id": "agent_023",
+          "title": "DPO",
+          "full_title": "Data Protection Officer",
+          "level": "Senior",
+          "criticality": "important",
+          "phase": "P2",
+          "phase_day": "Semaine 5",
+          "reports_to": "agent_002 (COO) — dotted line to agent_027 (Legal EU)",
+          "location": "France — Remote",
+          "workstreams": ["C27","C28"]
+        }
+      ]
+    }
+  ],
+  "reporting_lines": [
+    {"from": "agent_001", "to": "CEO", "type": "direct", "relation": "CTO reports to CEO"},
+    {"from": "agent_002", "to": "CEO", "type": "direct", "relation": "COO reports to CEO"},
+    {"from": "agent_003", "to": "CEO", "type": "direct", "relation": "CPO reports to CEO"},
+    {"from": "agent_027", "to": "CEO", "type": "direct", "relation": "Legal EU reports to CEO"},
+    {"from": "agent_029", "to": "CEO", "type": "direct", "relation": "CFO reports to CEO"},
+    {"from": "agent_006", "to": "agent_001", "type": "direct", "relation": "Lead Backend reports to CTO"},
+    {"from": "agent_007", "to": "agent_006", "type": "direct", "relation": "Backend Kernel reports to Lead Backend"},
+    {"from": "agent_008", "to": "agent_006", "type": "direct", "relation": "Backend Agents reports to Lead Backend"},
+    {"from": "agent_009", "to": "agent_006", "type": "direct", "relation": "Backend API reports to Lead Backend"},
+    {"from": "agent_010", "to": "agent_006", "type": "direct", "relation": "DevOps reports to Lead Backend"},
+    {"from": "agent_011", "to": "agent_001", "type": "direct", "relation": "Lead Frontend reports to CTO"},
+    {"from": "agent_012", "to": "agent_011", "type": "direct", "relation": "Frontend UI reports to Lead Frontend"},
+    {"from": "agent_013", "to": "agent_001", "type": "direct", "relation": "Lead IA reports to CTO"},
+    {"from": "agent_014", "to": "agent_013", "type": "direct", "relation": "IA NLP reports to Lead IA"},
+    {"from": "agent_015", "to": "agent_013", "type": "direct", "relation": "IA Scoring reports to Lead IA"},
+    {"from": "agent_016", "to": "agent_013", "type": "direct", "relation": "IA Embeddings reports to Lead IA"},
+    {"from": "agent_004", "to": "agent_003", "type": "direct", "relation": "PM_AO reports to CPO"},
+    {"from": "agent_005", "to": "agent_004", "type": "dotted", "relation": "UX Designer dotted to PM_AO"},
+    {"from": "agent_017", "to": "agent_002", "type": "direct", "relation": "Head Sales FR reports to COO"},
+    {"from": "agent_018", "to": "agent_017", "type": "direct", "relation": "SDR FR reports to Head Sales FR"},
+    {"from": "agent_019", "to": "agent_017", "type": "direct", "relation": "CSM FR reports to Head Sales FR"},
+    {"from": "agent_024", "to": "agent_002", "type": "direct", "relation": "Country Manager MA reports to COO"},
+    {"from": "agent_025", "to": "agent_024", "type": "direct", "relation": "Sales MA reports to Country Manager MA"},
+    {"from": "agent_026", "to": "agent_024", "type": "direct", "relation": "CSM MA reports to Country Manager MA"},
+    {"from": "agent_020", "to": "agent_002", "type": "direct", "relation": "Head Marketing reports to COO"},
+    {"from": "agent_021", "to": "agent_020", "type": "direct", "relation": "Content Creator reports to Head Marketing"},
+    {"from": "agent_022", "to": "agent_002", "type": "direct", "relation": "Security Officer reports to COO"},
+    {"from": "agent_023", "to": "agent_002", "type": "dotted", "relation": "DPO dotted to COO, dotted to Legal EU"},
+    {"from": "agent_028", "to": "agent_027", "type": "dotted", "relation": "Legal MA dotted to Legal EU"},
+    {"from": "agent_030", "to": "agent_029", "type": "dotted", "relation": "Office Manager dotted to CFO"}
+  ],
+  "workstreams": [
+    {"id": "C1", "name": "Kernel TAKA OS", "description": "EventBus, Config, Securite, RBAC, Audit, Multi-tenancy", "complexity": "Elevee", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C2", "name": "Base de donnees", "description": "PostgreSQL + pgvector, migrations, seed, backup", "complexity": "Moyenne", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C3", "name": "API REST", "description": "28+ endpoints, FastAPI, validation, documentation", "complexity": "Elevee", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C4", "name": "Auth & Securite", "description": "JWT, RBAC, audit trail, rate limiting, hash chain", "complexity": "Elevee", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C5", "name": "Agent Sourcer", "description": "Upload, parsing PDF/UBL/XML, detection format", "complexity": "Elevee", "phase": "P1", "owner_pole": "05_ia_ml"},
+    {"id": "C6", "name": "Agent Qualifieur", "description": "Scoring 80% regles / 20% LLM, algorithmie GO/NO-GO", "complexity": "Tres elevee", "phase": "P1", "owner_pole": "05_ia_ml"},
+    {"id": "C7", "name": "Agent Tracker", "description": "Alertes deadlines, APScheduler, notifications multi-canaux", "complexity": "Moyenne", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C8", "name": "Memoire pgvector", "description": "Embeddings, index HNSW, recherche similarite, capitalisation", "complexity": "Elevee", "phase": "P1", "owner_pole": "05_ia_ml"},
+    {"id": "C9", "name": "Pipeline Kanban", "description": "8 stages, drag-drop, API changement d'etat", "complexity": "Moyenne", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C10", "name": "Frontend React", "description": "9 pages, composants UI, state management, responsive", "complexity": "Elevee", "phase": "P1", "owner_pole": "04_eng_frontend"},
+    {"id": "C11", "name": "Integration Mistral AI", "description": "httpx + Jinja2, circuit breaker, retry, templates", "complexity": "Elevee", "phase": "P1", "owner_pole": "05_ia_ml"},
+    {"id": "C12", "name": "DevOps & Infra", "description": "Docker Compose, Nginx, SSL, CI/CD, monitoring, backup", "complexity": "Elevee", "phase": "P1", "owner_pole": "03_eng_backend"},
+    {"id": "C13", "name": "Deliberation parlementaire", "description": "Toggle, 3 agents votent, timeout 30s", "complexity": "Moyenne", "phase": "P2", "owner_pole": "05_ia_ml"},
+    {"id": "C14", "name": "TAKA LAB auto-ajustement", "description": "Apprentissage passif scoring, logs de performance", "complexity": "Moyenne", "phase": "P2", "owner_pole": "05_ia_ml"},
+    {"id": "C15", "name": "Agent Writer (Copilote)", "description": "RAG memoires proceduraux, suggestions redaction", "complexity": "Elevee", "phase": "P2", "owner_pole": "05_ia_ml"},
+    {"id": "C16", "name": "Connecteurs places de marche", "description": "BOAMP, e-marchespublics, TED, Mercell", "complexity": "Elevee", "phase": "P2", "owner_pole": "05_ia_ml"},
+    {"id": "C17", "name": "Generation documents", "description": "Templates DC1/DC2, pre-remplissage, validation humaine", "complexity": "Moyenne", "phase": "P2", "owner_pole": "02_produit"},
+    {"id": "C18", "name": "API publique", "description": "Webhooks, API tierce, integrations", "complexity": "Moyenne", "phase": "P2", "owner_pole": "03_eng_backend"},
+    {"id": "C19", "name": "Mobile (PWA)", "description": "Responsive avance, offline, notifications push", "complexity": "Moyenne", "phase": "P2", "owner_pole": "04_eng_frontend"},
+    {"id": "C20", "name": "Analytics & Reporting", "description": "Dashboards KPI, exports, ROI", "complexity": "Moyenne", "phase": "P2", "owner_pole": "02_produit"},
+    {"id": "C21", "name": "Go-to-Market France", "description": "Prospection PME BTP, demos, POC, closing", "complexity": "Elevee", "phase": "P1-P2", "owner_pole": "06_gtm_france"},
+    {"id": "C22", "name": "Go-to-Market Belgique", "description": "Extension marche belge, partenariats", "complexity": "Moyenne", "phase": "P3", "owner_pole": "06_gtm_france"},
+    {"id": "C23", "name": "Go-to-Market Maroc", "description": "Adaptation legale, prospection, partenariats locaux", "complexity": "Elevee", "phase": "P3", "owner_pole": "07_gtm_maroc"},
+    {"id": "C24", "name": "Marketing & Content", "description": "Blog, SEO, cas d'usage, temoignages, communaute OSS", "complexity": "Moyenne", "phase": "P1-P4", "owner_pole": "08_marketing"},
+    {"id": "C25", "name": "Pricing & Packaging", "description": "Plans tarifaires, upsell, churn management", "complexity": "Moyenne", "phase": "P2", "owner_pole": "10_finance"},
+    {"id": "C26", "name": "Support client", "description": "Tickets, FAQ, onboarding, formation", "complexity": "Moyenne", "phase": "P2", "owner_pole": "06_gtm_france"},
+    {"id": "C27", "name": "Conformite AI Act EU", "description": "Badge IA, transparence, documentation technique", "complexity": "Elevee", "phase": "P1", "owner_pole": "09_juridique"},
+    {"id": "C28", "name": "RGPD / Loi 09-08 Maroc", "description": "DPO, droit a l'oubli, portabilite, minimisation", "complexity": "Elevee", "phase": "P1", "owner_pole": "11_securite"},
+    {"id": "C29", "name": "Conformite marches publics", "description": "Validation humaine, non-responsabilite, audit trail", "complexity": "Moyenne", "phase": "P1", "owner_pole": "09_juridique"},
+    {"id": "C30", "name": "Licence & IP", "description": "MIT, CLA, contributions externes, marque", "complexity": "Moyenne", "phase": "P1", "owner_pole": "09_juridique"},
+    {"id": "C31", "name": "Modele economique", "description": "CAC, LTV, churn, MRR, unit economics", "complexity": "Elevee", "phase": "P1", "owner_pole": "10_finance"},
+    {"id": "C32", "name": "Fundraising", "description": "Pitch deck, due diligence, relations investisseurs", "complexity": "Elevee", "phase": "P3", "owner_pole": "10_finance"},
+    {"id": "C33", "name": "Operations SaaS", "description": "Onboarding, provisioning, billing, facturation", "complexity": "Moyenne", "phase": "P2", "owner_pole": "02_produit"},
+    {"id": "C34", "name": "Securite ops", "description": "Pentests, SOC, patch management, incident response", "complexity": "Elevee", "phase": "P2", "owner_pole": "11_securite"}
+  ],
+  "processes": [
+    {
+      "id": "PROC-001",
+      "name": "Release MVP P1",
+      "description": "Conception, developpement et deploiement du MVP en 4 semaines",
+      "phase": "P1",
+      "duration_weeks": 4,
+      "raci": {
+        "R": ["agent_006", "agent_007", "agent_008", "agent_009", "agent_011", "agent_012", "agent_013", "agent_014", "agent_015"],
+        "A": "agent_001",
+        "C": ["agent_003", "agent_004", "agent_005", "agent_010"],
+        "I": ["agent_002", "agent_027", "agent_022"]
+      }
+    },
+    {
+      "id": "PROC-002",
+      "name": "Architecture & Stack Technique",
+      "description": "Definition et validation de l'architecture technique, choix de stack, revue d'architecture",
+      "phase": "P1",
+      "duration_weeks": 1,
+      "raci": {
+        "R": ["agent_001", "agent_006"],
+        "A": "agent_001",
+        "C": ["agent_013", "agent_011", "agent_010"],
+        "I": ["agent_003", "agent_027"]
+      }
+    },
+    {
+      "id": "PROC-003",
+      "name": "Developpement Backend Core",
+      "description": "Implementation du kernel, API REST, base de donnees, auth et securite",
+      "phase": "P1",
+      "duration_weeks": 4,
+      "raci": {
+        "R": ["agent_006", "agent_007", "agent_008", "agent_009"],
+        "A": "agent_006",
+        "C": ["agent_001", "agent_010", "agent_013"],
+        "I": ["agent_011", "agent_003"]
+      }
+    },
+    {
+      "id": "PROC-004",
+      "name": "Developpement Frontend",
+      "description": "Implementation de l'interface React, composants UI, integration API, responsive",
+      "phase": "P1",
+      "duration_weeks": 4,
+      "raci": {
+        "R": ["agent_011", "agent_012"],
+        "A": "agent_011",
+        "C": ["agent_005", "agent_009", "agent_001"],
+        "I": ["agent_003", "agent_006"]
+      }
+    },
+    {
+      "id": "PROC-005",
+      "name": "Pipeline IA & Scoring",
+      "description": "Integration LLM Mistral, parsing documents, scoring GO/NO-GO, embeddings vectoriels",
+      "phase": "P1",
+      "duration_weeks": 4,
+      "raci": {
+        "R": ["agent_013", "agent_014", "agent_015", "agent_016"],
+        "A": "agent_013",
+        "C": ["agent_008", "agent_001", "agent_004"],
+        "I": ["agent_006", "agent_003"]
+      }
+    },
+    {
+      "id": "PROC-006",
+      "name": "Integration & DevOps",
+      "description": "Docker Compose, CI/CD, Nginx, SSL, monitoring, backup, deploiement production",
+      "phase": "P1",
+      "duration_weeks": 4,
+      "raci": {
+        "R": ["agent_010"],
+        "A": "agent_010",
+        "C": ["agent_001", "agent_006", "agent_007"],
+        "I": ["agent_011", "agent_013"]
+      }
+    },
+    {
+      "id": "PROC-007",
+      "name": "Conformite Reglementaire P1",
+      "description": "AI Act EU, RGPD, conformite marches publics, validation humaine obligatoire",
+      "phase": "P1",
+      "duration_weeks": 4,
+      "raci": {
+        "R": ["agent_027", "agent_022"],
+        "A": "agent_027",
+        "C": ["agent_001", "agent_013", "agent_008"],
+        "I": ["agent_003", "agent_002"]
+      }
+    },
+    {
+      "id": "PROC-008",
+      "name": "Release V1.1",
+      "description": "Deliberation parlementaire, TAKA LAB, connecteurs places de marche, generation documents",
+      "phase": "P2",
+      "duration_weeks": 8,
+      "raci": {
+        "R": ["agent_008", "agent_013", "agent_014", "agent_015", "agent_016", "agent_009", "agent_012"],
+        "A": "agent_001",
+        "C": ["agent_003", "agent_004", "agent_005", "agent_006"],
+        "I": ["agent_002", "agent_017"]
+      }
+    },
+    {
+      "id": "PROC-009",
+      "name": "Go-to-Market France",
+      "description": "Lancement commercial France : prospection PME BTP, demos, POC, closing",
+      "phase": "P2",
+      "duration_weeks": 8,
+      "raci": {
+        "R": ["agent_017", "agent_018"],
+        "A": "agent_017",
+        "C": ["agent_002", "agent_020", "agent_004"],
+        "I": ["agent_003", "agent_001"]
+      }
+    },
+    {
+      "id": "PROC-010",
+      "name": "Marketing & Acquisition",
+      "description": "Content marketing, SEO, blog, cas d'usage, communaute open source",
+      "phase": "P2",
+      "duration_weeks": 8,
+      "raci": {
+        "R": ["agent_020", "agent_021"],
+        "A": "agent_020",
+        "C": ["agent_002", "agent_017", "agent_003"],
+        "I": ["agent_001"]
+      }
+    },
+    {
+      "id": "PROC-011",
+      "name": "Customer Success & Support",
+      "description": "Onboarding clients, support, FAQ, formation, churn prevention",
+      "phase": "P2",
+      "duration_weeks": 8,
+      "raci": {
+        "R": ["agent_019"],
+        "A": "agent_002",
+        "C": ["agent_017", "agent_004", "agent_020"],
+        "I": ["agent_003"]
+      }
+    },
+    {
+      "id": "PROC-012",
+      "name": "Securite & Protection Donnees",
+      "description": "Audit securite, pentests, DPO, conformite RGPD, gestion incidents",
+      "phase": "P2",
+      "duration_weeks": 8,
+      "raci": {
+        "R": ["agent_022", "agent_023"],
+        "A": "agent_022",
+        "C": ["agent_001", "agent_027", "agent_007"],
+        "I": ["agent_002", "agent_006"]
+      }
+    },
+    {
+      "id": "PROC-013",
+      "name": "Expansion Multi-Marche",
+      "description": "Deploiement Maroc et Belgique : adaptation legale, partenariats, recrutement local",
+      "phase": "P3",
+      "duration_weeks": 12,
+      "raci": {
+        "R": ["agent_024", "agent_025", "agent_026"],
+        "A": "agent_024",
+        "C": ["agent_002", "agent_028", "agent_017"],
+        "I": ["agent_003", "agent_020"]
+      }
+    },
+    {
+      "id": "PROC-014",
+      "name": "Gestion Financiere & Fundraising",
+      "description": "Modele economique, unit economics, fundraising Seed/Series A, relations investisseurs",
+      "phase": "P3",
+      "duration_weeks": 12,
+      "raci": {
+        "R": ["agent_029"],
+        "A": "agent_029",
+        "C": ["agent_002", "agent_027"],
+        "I": ["agent_001", "agent_003"]
+      }
+    },
+    {
+      "id": "PROC-015",
+      "name": "Scale & Maturite",
+      "description": "Scale technique et operationnel, optimisation couts, preparation contribution OSS, marque",
+      "phase": "P4",
+      "duration_weeks": 12,
+      "raci": {
+        "R": ["agent_001", "agent_002", "agent_006", "agent_010"],
+        "A": "CEO",
+        "C": ["agent_003", "agent_029", "agent_020", "agent_013"],
+        "I": ["agent_017", "agent_024", "agent_027"]
+      }
+    }
+  ],
+  "phases": [
+    {
+      "id": "P1",
+      "name": "MVP",
+      "description": "Minimum Viable Product — 4 semaines, 16 agents actives",
+      "period": "S1-S4 (1er mois)",
+      "agents_activated": 16,
+      "agents_cumulative": 16,
+      "key_deliverables": [
+        "Kernel TAKA OS (EventBus, Config, RBAC, Audit)",
+        "Base de donnees PostgreSQL + pgvector",
+        "API REST 28+ endpoints",
+        "Auth JWT + RBAC",
+        "Agent Sourcer (upload + parsing)",
+        "Agent Qualifieur (scoring GO/NO-GO)",
+        "Agent Tracker (alertes deadlines)",
+        "Memoire pgvector (embeddings + recherche)",
+        "Pipeline Kanban (8 stages)",
+        "Frontend React (9 pages)",
+        "Integration Mistral AI",
+        "DevOps Docker Compose + Nginx + SSL",
+        "Conformite AI Act + RGPD P1",
+        "Licence MIT + CLA"
+      ],
+      "cost_infra_eur": 8,
+      "cost_infra_period": "mensuel VPS"
+    },
+    {
+      "id": "P2",
+      "name": "V1.1 — Post-MVP",
+      "description": "Enrichissement fonctionnel, lancement commercial France",
+      "period": "S5-S12 (mois 2-3)",
+      "agents_activated": 9,
+      "agents_cumulative": 25,
+      "key_deliverables": [
+        "Deliberation parlementaire (3 agents votent)",
+        "TAKA LAB auto-ajustement scoring",
+        "Agent Writer (copilote redaction)",
+        "Connecteurs places de marche (BOAMP, TED)",
+        "Generation documents DC1/DC2",
+        "API publique + webhooks",
+        "Mobile PWA",
+        "Analytics & reporting",
+        "GTM France (prospection PME BTP)",
+        "Marketing & content (blog, SEO, communaute)"
+      ],
+      "cost_infra_eur": 15,
+      "cost_infra_period": "mensuel VPS + services"
+    },
+    {
+      "id": "P3",
+      "name": "Multi-Marche",
+      "description": "Expansion Maroc et Belgique, fundraising, equipe complete",
+      "period": "S13-S24 (mois 4-6)",
+      "agents_activated": 4,
+      "agents_cumulative": 29,
+      "key_deliverables": [
+        "GTM Maroc (adaptation legale, partenariats)",
+        "GTM Belgique (extension)",
+        "CFO et gestion financiere",
+        "Fundraising Seed/Series A",
+        "Conformite Loi 09-08 Maroc",
+        "Office Manager / RH"
+      ],
+      "cost_infra_eur": 25,
+      "cost_infra_period": "mensuel multi-environnements"
+    },
+    {
+      "id": "P4",
+      "name": "Scale",
+      "description": "Maturite, optimisation, contribution open source",
+      "period": "S25+ (mois 7+)",
+      "agents_activated": 1,
+      "agents_cumulative": 30,
+      "key_deliverables": [
+        "Mise a l'echelle technique et operationnelle",
+        "Optimisation des couts d'infrastructure",
+        "Preparation contribution open source",
+        "Marque et notoriete secteur"
+      ],
+      "cost_infra_eur": 50,
+      "cost_infra_period": "mensuel scale"
+    }
+  ],
+  "critical_path": {
+    "description": "Chaine de dependances techniques P1",
+    "chain": [
+      "Kernel (EventBus + Config + Security)",
+      "Base de donnees (PostgreSQL + pgvector)",
+      "API REST (endpoints)",
+      "Auth & RBAC (JWT)",
+      "Agent Sourcer (upload)",
+      "Parsing PDF",
+      "Agent Qualifieur (scoring)",
+      "Pipeline Kanban",
+      "Frontend React",
+      "DevOps (Docker + deploy)"
+    ]
+  },
+  "cross_pole_dependencies": [
+    {"from": "05_ia_ml", "to": "03_eng_backend", "reason": "IA depend des endpoints API et de la DB"},
+    {"from": "04_eng_frontend", "to": "03_eng_backend", "reason": "Frontend depend des API backend"},
+    {"from": "02_produit", "to": "03_eng_backend", "reason": "Produit pilote tous les poles techniques"},
+    {"from": "02_produit", "to": "04_eng_frontend", "reason": "Produit pilote tous les poles techniques"},
+    {"from": "02_produit", "to": "05_ia_ml", "reason": "Produit pilote tous les poles techniques"},
+    {"from": "06_gtm_france", "to": "02_produit", "reason": "GTM depend du produit pour les demos"},
+    {"from": "09_juridique", "to": "05_ia_ml", "reason": "Legal impacte la conformite des LLM"},
+    {"from": "09_juridique", "to": "03_eng_backend", "reason": "Legal impacte l'audit trail backend"},
+    {"from": "11_securite", "to": "03_eng_backend", "reason": "Securite impacte tous les poles techniques"},
+    {"from": "11_securite", "to": "04_eng_frontend", "reason": "Securite impacte tous les poles techniques"},
+    {"from": "11_securite", "to": "05_ia_ml", "reason": "Securite impacte tous les poles techniques"}
+  ],
+  "budget": {
+    "salary_roll_annual_eur": {
+      "france_min": 850000,
+      "france_max": 1250000,
+      "maroc_min": 380000,
+      "maroc_max": 580000,
+      "total_min": 1230000,
+      "total_max": 1830000,
+      "maturity_target": 1200000
+    },
+    "infrastructure_eur": {
+      "P1_mensuel": 8,
+      "P2_mensuel": 15,
+      "P3_mensuel": 25,
+      "P4_mensuel": 50
+    },
+    "llm_api_cost_eur": {
+      "P1_mensuel_estimated": 50,
+      "P2_mensuel_estimated": 200,
+      "P3_mensuel_estimated": 500,
+      "P4_mensuel_estimated": 1000
+    }
+  },
+  "metadata": {
+    "generated_by": "KIMI-TAKA-SWARM",
+    "generated_at": "2026-05-01",
+    "version": "1.0.0",
+    "schema": "swarm-manifest-v1"
+  }
+}

@@ -1,0 +1,152 @@
+# ============================================================
+# Swarm Registry TAKA OS v0.5+ — Configuration
+# ============================================================
+# Le Swarm Registry gere les agents disponibles, leurs capabilities,
+# leur statut et leur decouverte.
+#
+# Ce fichier definit la configuration par defaut du registry.
+# Les donnees dynamiques (agents enregistres) sont stockees
+# dans PostgreSQL (table `agents`).
+# ============================================================
+
+version: "0.5"
+
+# --- Capabilities pre-enregistrees ---
+# Chaque capability est un contrat d'interface : input_schema + output_schema
+default_capabilities:
+  - name: "ao.qualify"
+    description: "Qualifie un AO selon les criteres du tenant"
+    version: "1.0"
+    input_schema:
+      type: "object"
+      required: ["ao_id", "content", "criteria"]
+      properties:
+        ao_id: { type: "string" }
+        content: { type: "string" }
+        criteria: { type: "array", items: { type: "string" } }
+    output_schema:
+      type: "object"
+      required: ["qualified", "score", "reason"]
+      properties:
+        qualified: { type: "boolean" }
+        score: { type: "number", minimum: 0, maximum: 100 }
+        reason: { type: "string" }
+
+  - name: "ao.score"
+    description: "Attribue un score a un AO qualifie"
+    version: "1.0"
+    input_schema:
+      type: "object"
+      required: ["ao_id", "qualification_result"]
+      properties:
+        ao_id: { type: "string" }
+        qualification_result: { type: "object" }
+    output_schema:
+      type: "object"
+      required: ["total_score", "criteria_scores", "recommendation"]
+      properties:
+        total_score: { type: "number", minimum: 0, maximum: 100 }
+        criteria_scores: { type: "object" }
+        recommendation: { type: "string", enum: ["pursue", "watch", "ignore"] }
+
+  - name: "ao.track"
+    description: "Suit l'avancement d'un AO dans le pipeline"
+    version: "1.0"
+    input_schema:
+      type: "object"
+      required: ["ao_id", "stage"]
+      properties:
+        ao_id: { type: "string" }
+        stage: { type: "string", enum: ["new", "qualified", "scored", "bidding", "submitted", "awarded", "lost"] }
+    output_schema:
+      type: "object"
+      required: ["tracked", "next_actions"]
+      properties:
+        tracked: { type: "boolean" }
+        next_actions: { type: "array", items: { type: "string" } }
+
+  - name: "ao.source"
+    description: "Recherche de nouveaux AOs sur les plateformes publiques"
+    version: "1.0"
+    input_schema:
+      type: "object"
+      required: ["platforms", "keywords"]
+      properties:
+        platforms: { type: "array", items: { type: "string" } }
+        keywords: { type: "array", items: { type: "string" } }
+        date_range: { type: "string" }
+    output_schema:
+      type: "object"
+      required: ["aos_found", "count"]
+      properties:
+        aos_found: { type: "array", items: { type: "object" } }
+        count: { type: "integer", minimum: 0 }
+
+  - name: "memory.search"
+    description: "Recherche semantique dans la memoire tenant"
+    version: "1.0"
+    input_schema:
+      type: "object"
+      required: ["query", "top_k"]
+      properties:
+        query: { type: "string" }
+        top_k: { type: "integer", minimum: 1, maximum: 100 }
+        filters: { type: "object" }
+    output_schema:
+      type: "object"
+      required: ["results", "total"]
+      properties:
+        results: { type: "array", items: { type: "object" } }
+        total: { type: "integer" }
+
+  - name: "deliberation.vote"
+    description: "Emission d'un vote dans une deliberation"
+    version: "1.0"
+    input_schema:
+      type: "object"
+      required: ["session_id", "agent_id", "vote"]
+      properties:
+        session_id: { type: "string" }
+        agent_id: { type: "string" }
+        vote: { type: "object" }
+    output_schema:
+      type: "object"
+      required: ["accepted", "vote_id"]
+      properties:
+        accepted: { type: "boolean" }
+        vote_id: { type: "string" }
+
+# --- Configuration discovery ---
+discovery:
+  endpoint: "/api/v1/agents"
+  query_params:
+    - name: "capability"
+      description: "Filtrer par nom de capability"
+      type: "string"
+    - name: "status"
+      description: "Filtrer par statut d'agent"
+      type: "string"
+      enum: ["idle", "busy", "debating", "learning", "dead"]
+    - name: "vertical_id"
+      description: "Filtrer par vertical metier"
+      type: "string"
+  caching:
+    enabled: true
+    ttl_seconds: 30
+
+# --- Heartbeat ---
+heartbeat:
+  interval_seconds: 30
+  timeout_seconds: 60
+  max_missed: 2                     # Apres 2 heartbeats manques -> status "dead"
+  grace_period_seconds: 300         # Delai avant suppression d'un agent "dead"
+
+# --- Auto-respawn ---
+auto_respawn:
+  enabled: true
+  critical_agents:
+    - "qualifier"
+    - "scorer"
+    - "tracker"
+  max_respawn_per_hour: 10
+  backoff_seconds: [5, 10, 30, 60, 300]

@@ -1,0 +1,44 @@
+dimension_id: "coherence_metier"
+name: "Cohérence Metier"
+version: 1
+input_schema:
+  - ao.cpv_code
+  - ao.cpv_description
+  - ao.keywords
+  - enterprise.competencies
+  - enterprise.cpv_whitelist
+  - enterprise.sectors
+  - enterprise.past_cpv_success
+rules:
+  - condition: "ao.cpv_code in enterprise.cpv_whitelist"
+    action: "score = 100"
+    score_value: 100.0
+    strict: false
+    explanation_template: "CPV {ao.cpv_code} dans la whitelist = score maximal"
+
+  - condition: "ao.cpv_code[:2] in [cpv[:2] for cpv in enterprise.cpv_whitelist]"
+    action: "score = 70"
+    score_value: 70.0
+    strict: false
+    explanation_template: "CPV {ao.cpv_code} dans la meme famille (2 premiers digits) = score moyen-haut"
+
+  - condition: "len(set(ao.keywords) & set(enterprise.competencies)) >= 3"
+    action: "score += 20"
+    score_value: 20.0
+    strict: false
+    explanation_template: "{n} mots-cles en commun avec les competences de l'entreprise (+20)"
+
+  - condition: "ao.cpv_code in enterprise.past_cpv_success"
+    action: "score += 15"
+    score_value: 15.0
+    strict: false
+    explanation_template: "CPV deja gagne par le passe, experience confirmee (+15)"
+
+  - condition: "any(sector.lower() in ao.cpv_description.lower() for sector in enterprise.sectors)"
+    action: "score += 10"
+    score_value: 10.0
+    strict: false
+    explanation_template: "Secteur d'activite mentionne dans la description du CPV (+10)"
+
+default_score: 30.0
+default_weight: 0.25

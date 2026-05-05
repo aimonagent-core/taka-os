@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    container_name: taka-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taka
+      POSTGRES_PASSWORD: taka_password
+      POSTGRES_DB: taka_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taka -d taka_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - taka-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: taka-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "6379:6379"
+    networks:
+      - taka-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taka-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://taka:taka_password@db:5432/taka_db
+      - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - taka-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taka-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+    volumes:
+      - ./frontend:/app:cached
+      - /app/node_modules
+    networks:
+      - taka-network
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  pgdata:
+
+networks:
+  taka-network:
+    driver: bridge
