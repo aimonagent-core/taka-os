@@ -66,5 +66,7 @@ from app.models.audit import (
     ComplianceReport,
     PlatformCredential,
     PlatformType,
+    ScraperRun,
+    SubmissionLog,
     SubmissionReceipt,
 )

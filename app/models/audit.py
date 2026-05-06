@@ -246,3 +246,115 @@ class SubmissionReceipt(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class ScraperRun(Base):
+    """
+    Enregistre chaque execution d'un scraper.
+    Permet le monitoring, le debugging, et l'historique.
+    """
+
+    __tablename__ = "scraper_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Source du scraper (ex: "boamp", "ted", "joconde")
+    source: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+
+    # Statut de l'execution: "ok" | "error" | "partial" | "cancelled"
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ok")
+
+    # Nombre d'annonces traitees
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Nombre d'annonces inserees (sans doublons)
+    inserted: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Nombre de doublons detectes
+    duplicates: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Nombre d'erreurs
+    errors: Mapped[int] = mapped_column(Integer, default=0)
+
+    # Timestamps
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    finished_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # Message d'erreur (si status == "error")
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Clause WHERE utilisee (pour reproduire le run)
+    filter_where: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Details JSON supplementaires
+    extra_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    def __repr__(self) -> str:
+        return (
+            f"<ScraperRun(id={self.id}, source='{self.source}', "
+            f"status='{self.status}', count={self.count}, "
+            f"started_at={self.started_at})>"
+        )
+
+    @property
+    def duration_seconds(self) -> Optional[float]:
+        """Calcule la duree de l'execution en secondes."""
+        if self.finished_at and self.started_at:
+            return (self.finished_at - self.started_at).total_seconds()
+        return None
+
+
+class SubmissionLog(Base):
+    """
+    Journal des soumissions (deposant).
+    Garde une trace de chaque tentative de depot.
+    """
+
+    __tablename__ = "submission_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # References
+    ao_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+
+    # Plateforme cible
+    platform: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    # Statut: "submitted" | "mock_submitted" | "error" | "pending"
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+
+    # True si c'etait un mock
+    is_mock: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # ID externe retourne par la plateforme
+    external_submission_id: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True
+    )
+
+    # Timestamps
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    # Message d'erreur (si applicable)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Warning (si mock)
+    warning_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Details JSON
+    extra_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    def __repr__(self) -> str:
+        return (
+            f"<SubmissionLog(id={self.id}, ao_id={self.ao_id}, "
+            f"platform='{self.platform}', status='{self.status}', "
+            f"is_mock={self.is_mock})>"
+        )

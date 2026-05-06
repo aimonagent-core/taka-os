@@ -1,6 +1,15 @@
-"""Agent Deposant — orchestre le depot des reponses sur les plateformes."""
+"""
+Agent Deposant — orchestre le depot des reponses sur les plateformes.
+
+VERSION v0.10.0 : Fallback EXPLICITE — le mock n'est plus silencieux.
+Risque juridique L121-1 Code conso : toute soumission mock DOIT etre signalee.
+"""
+
 import logging
+import os
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from typing import Any, Optional
 
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,9 +23,53 @@ from app.agents.auditor import AuditEngine
 
 logger = logging.getLogger(__name__)
 
+# Variable d'environnement pour forcer les soumissions reelles
+FORCE_REAL_SUBMISSION = os.environ.get("FORCE_REAL_SUBMISSION", "false").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
+
+@dataclass
+class SubmissionResult:
+    """
+    Resultat d'une tentative de depot.
+
+    Champs:
+        status: Statut de la soumission ("submitted" | "mock_submitted" | "error" | "pending")
+        platform: Nom de la plateforme cible
+        is_mock: True si c'etait une simulation
+        warning: Message d'avertissement si mock
+        requires_action: Action utilisateur requise pour passer en reel
+        submitted_at: Timestamp de la soumission
+        external_id: ID externe retourne par la plateforme (si reel)
+        error_message: Message d'erreur (si erreur)
+        details: Details supplementaires
+    """
+
+    status: str  # "submitted" | "mock_submitted" | "error" | "pending"
+    platform: str
+    is_mock: bool = False
+    warning: Optional[str] = None
+    requires_action: Optional[str] = None
+    submitted_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    external_id: Optional[str] = None
+    error_message: Optional[str] = None
+    details: Optional[dict[str, Any]] = None
+
 
 class DeposantSubmitter:
-    """Soumissionnaire automatique pour les reponses validees."""
+    """Soumissionnaire automatique pour les reponses validees.
+
+    VERSION v0.10.0 — Fallback explicite:
+    - Si aucun connecteur reel n'est configure pour une plateforme,
+      le systeme retourne un statut "mock_submitted" (pas "submitted")
+    - Un message d'avertissement clair est inclus dans la reponse
+    - Une action requise est indiquee pour configurer un connecteur
+    - Le mock est logge en WARNING (pas INFO silencieux)
+    - Option FORCE_REAL_SUBMISSION=true pour desactiver le mock
+    """
 
     async def _get_connector_for_platform(
         self,
@@ -58,10 +111,29 @@ class DeposantSubmitter:
             except Exception as e:
                 logger.warning("[Deposant] Echec init connecteur real %s: %s", platform_type, e)
 
-        # 3. Fallback sur mock
+        # === FALLBACK EXPLICITE v0.10.0 ===
+        # Aucun connecteur reel configure
+
+        if FORCE_REAL_SUBMISSION:
+            logger.error(
+                "[Deposant] FORCE_REAL_SUBMISSION=true mais aucun connecteur "
+                "valide pour %s — Refus du mock",
+                platform_type,
+            )
+            raise ValueError(
+                f"FORCE_REAL_SUBMISSION est active mais aucun connecteur "
+                f"n'est configure pour '{platform_type}'. "
+                f"Configurez un connecteur ou desactivez FORCE_REAL_SUBMISSION."
+            )
+
+        # 3. Fallback sur mock — EXPLICITE
         try:
             connector_class = get_connector(platform_type, use_real=False)
-            logger.info("[Deposant] Fallback MOCK pour %s", platform_type)
+            logger.warning(
+                "[MOCK] Fallback MOCK explicite pour %s — aucun connecteur reel configure. "
+                "Article L121-1 Code conso — obligation d'information.",
+                platform_type,
+            )
             return connector_class(PlatformCredentials()), False, None
         except ValueError:
             logger.error("[Deposant] Aucun connecteur (real ou mock) pour %s", platform_type)
@@ -127,6 +199,27 @@ class DeposantSubmitter:
                     "status": result.status.value,
                     "message": result.message,
                     "next_steps": result.next_steps,
+                    # v0.10.0 — Fallback explicite
+                    "is_mock": not is_real,
+                    "warning": (
+                        "Ce depot est une SIMULATION. Aucun dossier n'a ete soumis "
+                        f"sur la plateforme reelle '{platform.platform_type}'. "
+                        "Les donnees ont ete enregistrees localement uniquement."
+                        if not is_real
+                        else None
+                    ),
+                    "requires_action": (
+                        "Configurer un connecteur dans Parametres > Plateformes"
+                        if not is_real
+                        else None
+                    ),
+                    "_mock_notice": (
+                        "[ATTENTION] Cette soumission est une simulation locale. "
+                        "Aucun dossier n'a ete transmis a la plateforme reelle. "
+                        "Article L121-1 Code de la consommation — obligation d'information."
+                        if not is_real
+                        else None
+                    ),
                 }
                 logger.info(
                     "[Deposant] Soumission %s OK (%s) — ref=%s",
@@ -211,3 +304,54 @@ class DeposantSubmitter:
             db=db,
             tenant_id=tenant_id,
         )
+
+    async def check_status(
+        self,
+        submission_id: str,
+        db: AsyncSession,
+    ) -> dict[str, Any]:
+        """Verifie le statut d'une soumission existante."""
+        stmt = select(Submission).where(Submission.id == submission_id)
+        row = await db.execute(stmt)
+        sub = row.scalar_one_or_none()
+        if not sub:
+            raise ValueError(f"Soumission {submission_id} introuvable")
+
+        return {
+            "id": str(sub.id),
+            "status": sub.status,
+            "platform_reference": sub.platform_reference,
+            "is_mock": sub.platform_response.get("is_mock", False) if sub.platform_response else False,
+            "warning": sub.platform_response.get("warning") if sub.platform_response else None,
+            "submitted_at": sub.submitted_at.isoformat() if sub.submitted_at else None,
+            "error": sub.error_message,
+        }
+
+    async def get_platforms_status(self, db: AsyncSession, tenant_id) -> dict[str, dict[str, Any]]:
+        """Retourne le statut de toutes les plateformes supportees."""
+        all_platforms = [
+            "boamp",
+            "e_notification",
+            "maroc",
+            "ted",
+            "custom",
+        ]
+
+        result: dict[str, dict[str, Any]] = {}
+        for platform in all_platforms:
+            stmt = select(PlatformCredential).where(
+                and_(
+                    PlatformCredential.tenant_id == tenant_id,
+                    PlatformCredential.platform_type == platform,
+                    PlatformCredential.is_active == True,
+                )
+            )
+            row = await db.execute(stmt)
+            cred = row.scalar_one_or_none()
+            result[platform] = {
+                "configured": cred is not None,
+                "enabled": cred is not None and cred.is_validated,
+                "has_real_connector": cred is not None and cred.is_validated,
+            }
+
+        return result

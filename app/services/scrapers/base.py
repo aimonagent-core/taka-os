@@ -1,10 +1,13 @@
 """Base abstraite pour tous les scrapers de veille."""
 import asyncio
+import hashlib
+import json
 import logging
 import random
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -42,6 +45,30 @@ class RawAOData:
         self.contact_phone: Optional[str] = None
         self.external_url: Optional[str] = None
         self.raw_data: dict = {}
+
+
+@dataclass
+class ScrapedAO:
+    """
+    Dataclass representant un appel d'offres extrait par un scraper.
+    C'est le format universel de transit entre scrapers et la base de donnees.
+    """
+    external_id: str
+    source: str
+    title: str
+    description: Optional[str] = None
+    cpv_code: Optional[str] = None
+    cpv_label: Optional[str] = None
+    publication_date: Optional[datetime] = None
+    deadline_date: Optional[datetime] = None
+    estimated_amount: Optional[float] = None
+    currency: str = "EUR"
+    buyer_name: Optional[str] = None
+    location: Optional[str] = None
+    procedure_type: Optional[str] = None
+    ao_type: Optional[str] = None
+    url: Optional[str] = None
+    raw_data: Optional[dict] = None
 
 
 class BaseScraper(ABC):
@@ -112,3 +139,55 @@ class BaseScraper(ABC):
                 return {"ok": True, "latency_ms": latency, "error": None}
             except Exception as e:
                 return {"ok": False, "latency_ms": 0, "error": str(e)}
+
+    def compute_hash(self, data: dict[str, Any]) -> str:
+        """Calcule le SHA-256 d'un dictionnaire pour la deduplication."""
+        content = json.dumps(data, sort_keys=True, default=str)
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+class BaseScraperV2(ABC):
+    """
+    Classe abstraite que tous les scrapers v2 doivent heriter.
+    Utilise ScrapedAO au lieu de RawAOData.
+
+    Attributs de classe a definir:
+        source_name: str — Identifiant de la source (ex: "boamp", "ted")
+        base_url: str — URL de base pour les requetes
+        rate_limit: float — Delai minimum en secondes entre deux requetes
+    """
+
+    source_name: str = ""
+    base_url: str = ""
+    rate_limit: float = 1.0
+
+    def __init__(self) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    @abstractmethod
+    async def fetch(
+        self, limit: int = 100, **kwargs: Any
+    ) -> list[ScrapedAO]:
+        """
+        Recupere les annonces depuis la source.
+
+        Args:
+            limit: Nombre maximum d'annonces a recuperer.
+            **kwargs: Parametres specifiques au scraper.
+
+        Returns:
+            Liste de ScrapedAO.
+        """
+        raise NotImplementedError
+
+    async def fetch_and_store(
+        self, limit: int = 100, **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Recupere et stocke les annonces en base.
+        A surcharger si besoin d'une logique specifique.
+
+        Returns:
+            Rapport d'execution.
+        """
+        raise NotImplementedError
