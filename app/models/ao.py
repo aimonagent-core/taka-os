@@ -602,7 +602,7 @@ class DocumentAO(Base):
     file_path: Mapped[str] = mapped_column(Text, nullable=False)
     content_type: Mapped[str | None] = mapped_column(String(100))
     file_size: Mapped[int | None] = mapped_column(Integer)
-    vector_embedding: Mapped[Any | None] = mapped_column(Vector(1536), nullable=True)
+    vector_embedding: Mapped[Any | None] = mapped_column(Vector(1024), nullable=True)
     extracted_text: Mapped[str | None] = mapped_column(Text)
     extra_metadata: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(
@@ -663,7 +663,7 @@ class Message(Base):
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    vector_embedding: Mapped[Any | None] = mapped_column(Vector(1536), nullable=True)
+    vector_embedding: Mapped[Any | None] = mapped_column(Vector(1024), nullable=True)
     extra_metadata: Mapped[dict | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

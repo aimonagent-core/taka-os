@@ -2,113 +2,61 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.security import create_access_token, get_password_hash
+from app.core.security import create_access_token
 from app.database import get_db
 from app.dependencies import get_current_user
-from app.models.ao import Tenant, TenantType, User, UserRole
-from app.models.billing import EmailPreference, TenantSubscription
+from app.models.ao import Tenant, User
 from app.models.business_line import BusinessLine
 from app.models.feature_flag import SubscriptionTier
-from app.services.email.service import EmailService
+from app.schemas.onboarding import OnboardingSetupRequest, OnboardingSetupResponse
+from app.services.onboarding import create_tenant_and_admin
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/onboarding", tags=["Onboarding"])
 
 
-class OnboardingRegister:
-    email: str
-    password: str
-    first_name: str
-    last_name: str
-    company_name: str
+# =============================================================================
+# C4/C5/C10 — Endpoint onboarding renomme et converti en Pydantic
+# =============================================================================
 
-
-@router.post("/register")
-async def onboarding_register(
-    email: str = Form(...),
-    password: str = Form(...),
-    full_name: str = Form(...),
-    company_name: str = Form(...),
+@router.post(
+    "/setup",
+    response_model=OnboardingSetupResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Configuration initiale — cree un tenant et un admin",
+    description="""
+    Endpoint de setup initial pour un nouveau client.
+    Cree un tenant + un utilisateur TENANT_ADMIN.
+    DIFFERENT de POST /auth/register qui cree un utilisateur VIEWER existant.
+    """,
+)
+async def onboarding_setup(
+    request_data: OnboardingSetupRequest,
     db: AsyncSession = Depends(get_db),
-):
-    """Inscription initiale : cree le tenant + l'utilisateur admin."""
-    # Verifier si l'email existe deja
-    stmt = select(User).where(User.email == email)
-    row = await db.execute(stmt)
-    if row.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cet email est deja utilise",
-        )
+) -> OnboardingSetupResponse:
+    """Cree un nouveau tenant avec son administrateur.
 
-    # Creer le tenant
-    import uuid
-    slug_base = company_name.lower().replace(" ", "-")[:50]
-    slug = slug_base
-    counter = 1
-    while True:
-        existing = await db.execute(select(Tenant).where(Tenant.slug == slug))
-        if not existing.scalar_one_or_none():
-            break
-        slug = f"{slug_base}-{counter}"
-        counter += 1
+    Cet endpoint est le point d'entree pour un nouveau client.
+    Il cree simultanement :
+    - Un tenant avec le plan et la configuration specifies
+    - Un utilisateur TENANT_ADMIN associe a ce tenant
 
-    tenant = Tenant(
-        id=uuid.uuid4(),
-        name=company_name,
-        type=TenantType.SOUMISSIONNAIRE,
-        slug=slug,
-        billing_plan="free",
-        is_active=True,
-    )
-    db.add(tenant)
-    await db.flush()
-
-    # Tier par defaut = free
-    stmt_free = select(SubscriptionTier).where(SubscriptionTier.name == "free")
-    row_free = await db.execute(stmt_free)
-    free_tier = row_free.scalar_one()
-
-    # Creer la souscription
-    sub = TenantSubscription(
-        tenant_id=tenant.id,
-        tier_id=free_tier.id,
-        status="active",
-    )
-    db.add(sub)
-
-    # Creer l'utilisateur admin
-    user = User(
-        id=uuid.uuid4(),
-        email=email,
-        hashed_password=get_password_hash(password),
-        full_name=full_name,
-        tenant_id=tenant.id,
-        role=UserRole.TENANT_ADMIN,
-        is_active=True,
-        email_verified=True,
-    )
-    db.add(user)
-    await db.flush()
-
-    # Preferences email par defaut
-    prefs = EmailPreference(user_id=user.id)
-    db.add(prefs)
-    await db.commit()
-
-    # Envoyer email de bienvenue
-    await EmailService.send_welcome_email(
-        db,
-        recipient=email,
-        user_name=full_name,
-        tenant_id=str(tenant.id),
-        user_id=str(user.id),
+    Le endpoint /auth/register reste le chemin canonique pour l'inscription
+    d'utilisateurs supplementaires sur un tenant existant.
+    """
+    tenant, user = await create_tenant_and_admin(
+        db=db,
+        tenant_name=request_data.tenant_name,
+        admin_email=request_data.admin_email,
+        admin_password=request_data.admin_password,
+        admin_full_name=request_data.admin_full_name,
+        plan=request_data.plan,
     )
 
     # Generer le token JWT
@@ -120,28 +68,26 @@ async def onboarding_register(
         }
     )
 
-    logger.info(f"[Onboarding] Nouveau tenant cree : {tenant.name} ({tenant.id})")
-    return {
-        "status": "success",
-        "data": {
-            "access_token": token,
-            "token_type": "bearer",
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "full_name": user.full_name,
-                "tenant_id": str(tenant.id),
-            },
-        },
-        "message": "Compte cree avec succes",
-    }
+    return OnboardingSetupResponse(
+        tenant_id=str(tenant.id),
+        tenant_uuid=str(tenant.id),
+        admin_user_id=str(user.id),
+        admin_email=user.email,
+        access_token=token,
+        token_type="bearer",
+        message="Tenant et administrateur crees avec succes.",
+    )
 
 
-@router.post("/setup")
-async def onboarding_setup(
-    business_line_name: str = Form(...),
-    cpv_keywords: Optional[list[str]] = Form(None),
-    plan_name: Optional[str] = Form(None),
+# =============================================================================
+# Configuration post-inscription : ligne metier + plan
+# =============================================================================
+
+@router.post("/configure")
+async def onboarding_configure(
+    business_line_name: str,
+    cpv_keywords: Optional[list[str]] = None,
+    plan_name: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -163,12 +109,14 @@ async def onboarding_setup(
     if cpv_keywords:
         from app.models.business_line import BLCPVKeyword
         for kw in cpv_keywords:
-            db.add(BLCPVKeyword(
-                business_line_id=bl.id,
-                cpv_code=kw,
-                label=kw,
-                weight=1.0,
-            ))
+            db.add(
+                BLCPVKeyword(
+                    business_line_id=bl.id,
+                    cpv_code=kw,
+                    label=kw,
+                    weight=1.0,
+                )
+            )
 
     # Si un plan payant est selectionne, mettre a jour la souscription
     if plan_name and plan_name in ("pro", "enterprise"):
@@ -177,6 +125,7 @@ async def onboarding_setup(
         tier = row.scalar_one_or_none()
 
         if tier:
+            from app.models.billing import TenantSubscription
             stmt_sub = select(TenantSubscription).where(
                 TenantSubscription.tenant_id == current_user.tenant_id
             )
@@ -199,6 +148,10 @@ async def onboarding_setup(
     }
 
 
+# =============================================================================
+# Statut onboarding
+# =============================================================================
+
 @router.get("/status")
 async def onboarding_status(
     db: AsyncSession = Depends(get_db),
@@ -212,6 +165,7 @@ async def onboarding_status(
     row = await db.execute(stmt)
     has_bl = row.scalar_one_or_none() is not None
 
+    from app.models.billing import TenantSubscription
     stmt_sub = select(TenantSubscription).where(
         TenantSubscription.tenant_id == current_user.tenant_id
     )

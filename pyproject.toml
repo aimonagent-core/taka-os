@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "taka-api"
-version = "0.2.0"
+version = "0.9.0"
 description = "TAKA - Plateforme d'appels d'offres automatises"
 authors = ["TAKA Team"]
 readme = "README.md"
@@ -52,16 +52,118 @@ pandas = "^2.0.0"
 pytest = "^8.3.0"
 pytest-asyncio = "^0.24.0"
 pytest-cov = "^6.0.0"
+httpx = "^0.27.0"
+faker = "^22.0.0"
+ruff = "^0.2.0"
+mypy = "^1.13.0"
+factory-boy = "^3.3.0"
 black = "^24.10.0"
 isort = "^5.13.0"
 flake8 = "^7.1.0"
 bandit = "^1.7.10"
-mypy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+# =============================================================================
+# Ruff (linter / formatteur)
+# =============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "T20", # flake8-print
+]
+ignore = [
+    "E501",  # line too long (gere par le formatteur)
+]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["T20", "S101"]  # print et assert autorises dans les tests
+
+# =============================================================================
+# MyPy
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+# =============================================================================
+# Pytest
+# =============================================================================
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+]
+markers = [
+    "slow: tests lents (integration externe)",
+    "integration: tests d'integration",
+    "migrations: tests de migration Alembic",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:sqlalchemy.*",
+    "ignore::UserWarning:pydantic.*",
+]
+
+# =============================================================================
+# Coverage
+# =============================================================================
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+skip_covered = false
+fail_under = 60
+
+# =============================================================================
+# Black / isort (legacy — migres vers Ruff)
+# =============================================================================
 [tool.black]
 line-length = 88
 target-version = ['py311']
@@ -69,14 +171,3 @@ target-version = ['py311']
 [tool.isort]
 profile = "black"
 line_length = 88
-
-[tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80"

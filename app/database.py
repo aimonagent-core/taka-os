@@ -43,8 +43,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db() -> None:
-    """Create tables and enable pgvector extension."""
+    """Enable pgvector extension.
+
+    NOTE: Les tables sont creees et gerees exclusivement par Alembic.
+    Ne JAMAIS utiliser Base.metadata.create_all() en production.
+    """
     async with async_engine.begin() as conn:
         from sqlalchemy import text
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-        await conn.run_sync(Base.metadata.create_all)

@@ -5,7 +5,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.ao import AuditAction, AuditLog, FeatureFlag, FeatureFlagScope
+from app.models.ao import AuditAction, FeatureFlag, FeatureFlagScope
 from app.services.audit_service import AuditService
 from app.services.feature_flags import FeatureFlagService
 

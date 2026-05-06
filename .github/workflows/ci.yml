@@ -1,0 +1,289 @@
+# =============================================================================
+# I1 — Pipeline CI/CD GitHub Actions pour TAKA OS
+# =============================================================================
+
+name: CI — TAKA OS
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+  TEST_DATABASE_URL: "postgresql+asyncpg://taka:taka@localhost:5432/taka_test"
+
+jobs:
+  # ============================================================================
+  # Job 1 — Lint et type check
+  # ============================================================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.0
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Ruff lint
+        run: poetry run ruff check app/ tests/
+
+      - name: Ruff format check
+        run: poetry run ruff format --check app/ tests/
+
+      - name: MyPy type check
+        run: poetry run mypy app/ --ignore-missing-imports --warn-unused-ignores
+
+  # ============================================================================
+  # Job 2 — Tests Python
+  # ============================================================================
+  test-backend:
+    name: Tests Backend
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: taka
+          POSTGRES_PASSWORD: taka
+          POSTGRES_DB: taka_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.0
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U taka && break
+            sleep 1
+          done
+
+      - name: Create pgvector extension
+        run: |
+          PGPASSWORD=taka psql -h localhost -U taka -d taka_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Run pytest
+        run: |
+          poetry run pytest tests/ -v \
+            --cov=app \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:coverage_html \
+            -m "not slow" \
+            --timeout=300
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          SECRET_KEY: test-secret-key-for-ci-only-32chars-min
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            coverage.xml
+            coverage_html/
+          retention-days: 7
+
+      - name: Post coverage summary
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "### Couverture de test" >> $GITHUB_STEP_SUMMARY
+          poetry run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Job 3 — Build Frontend
+  # ============================================================================
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 3
+
+  # ============================================================================
+  # Job 4 — Compile check Python
+  # ============================================================================
+  compile-check:
+    name: Compile Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Check app/main.py compiles
+        run: python -m py_compile app/main.py
+
+      - name: Check app/database.py compiles
+        run: python -m py_compile app/database.py
+
+      - name: Check all Python files compile
+        run: |
+          find app -name "*.py" | while read f; do
+            python -m py_compile "$f" || { echo "ERREUR: $f"; exit 1; }
+          done
+
+  # ============================================================================
+  # Job 5 — Migration check
+  # ============================================================================
+  migration-check:
+    name: Migration Check
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: taka
+          POSTGRES_PASSWORD: taka
+          POSTGRES_DB: taka_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.7.0
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U taka && break
+            sleep 1
+          done
+
+      - name: Create pgvector extension
+        run: |
+          PGPASSWORD=taka psql -h localhost -U taka -d taka_test -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Alembic upgrade head
+        run: poetry run alembic upgrade head
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+      - name: Alembic downgrade base
+        run: poetry run alembic downgrade base
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+
+      - name: Alembic upgrade head (round-trip)
+        run: poetry run alembic upgrade head
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}

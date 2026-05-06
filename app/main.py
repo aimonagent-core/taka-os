@@ -17,7 +17,7 @@ from app.config import settings
 from app.core.feature_flags_middleware import FeatureFlagsMiddleware
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
 from app.core.sentry import init_sentry
-from app.database import init_db
+from app.database import init_db, get_db
 
 init_sentry()
 
@@ -117,11 +117,37 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # === ROUTES ===
 
+# =============================================================================
+# Inclusion des routeurs API — PUBLIC en premier (pas d'authentification)
+# =============================================================================
+# Le public_router (external_api) est inclus SANS prefix supplementaire
+# car il definit deja son propre prefix (/external/v1).
+# Il DOIT etre monte avant les routeurs proteges pour garantir
+# l'acces sans authentification.
 app.state.limiter = limiter
-app.include_router(api_router)
 app.include_router(external_public_router)
+app.include_router(api_router)
 
 
-@app.get("/health", tags=["Health"])
+@app.get("/health", tags=["Health"], include_in_schema=False)
 async def root_health():
     return {"status": "success", "data": {"alive": True}, "message": "OK", "meta": None}
+
+
+@app.get("/health/db", include_in_schema=False)
+async def health_db(db=Depends(get_db)):
+    """Verifie la connexion DB et que les migrations sont a jour."""
+    from sqlalchemy import text
+
+    try:
+        result = await db.execute(text("SELECT version_num FROM alembic_version"))
+        version = result.scalar()
+        return {
+            "status": "ok",
+            "migrations": version is not None,
+            "version": version,
+        }
+    except Exception:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=503, detail="Database not ready")

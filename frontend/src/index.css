@@ -1,5 +1,12 @@
-/* File: frontend/src/index.css */
-/* Purpose: Global styles */
+/* =============================================================================
+   C17 — Directives Tailwind + styles globaux TAKA OS
+   ============================================================================= */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vos styles custom apres les directives */
 
 * {
   box-sizing: border-box;
