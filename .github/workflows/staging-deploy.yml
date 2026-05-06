@@ -1,0 +1,48 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [ staging ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Copy .env.staging
+        run: |
+          echo "${{ secrets.ENV_STAGING }}" > .env.staging
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/taka-os
+            git fetch origin staging
+            git reset --hard origin/staging
+            cp .env.staging.example .env.staging
+            # Remplacer les secrets via sed ou autre methode
+            bash scripts/staging-down.sh
+            bash scripts/staging-up.sh

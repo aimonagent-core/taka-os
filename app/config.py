@@ -2,6 +2,8 @@
 # Purpose: Centralized Pydantic Settings configuration
 # Dependencies: pydantic-settings
 
+from typing import List
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,6 +46,9 @@ class Settings(BaseSettings):
     aws_secret_access_key: str | None = None
     backup_retention_days: int = 30
 
+    # CORS — en staging/production, liste restreinte
+    cors_origins: str = "http://localhost:5173,https://localhost"
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
@@ -53,12 +58,22 @@ class Settings(BaseSettings):
         return self.environment == "production"
 
     @property
+    def is_staging(self) -> bool:
+        return self.environment == "staging"
+
+    @property
     def sentry_enabled(self) -> bool:
         return bool(self.sentry_dsn)
 
     @property
     def s3_backup_enabled(self) -> bool:
         return bool(self.s3_backup_bucket and self.aws_access_key_id)
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        if self.is_production or self.is_staging:
+            return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        return ["*"]
 
 
 settings = Settings()
