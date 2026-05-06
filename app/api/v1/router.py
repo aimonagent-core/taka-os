@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from app.api.v1 import auth, auth_mfa, autonomy, billing, onboarding, webhooks_stripe
 from app.api.v1.endpoints import documents, health, hil, memory, tenants, users
 from app.api.v1 import veille, scoring, business_lines, dashboard, redacteur, deposant, audit, compliance_reports, platform_credentials, analytics, scrapers
-from app.api.v1 import external_api, comments, workflows, notifications
+from app.api.v1 import external_api, comments, workflows, notifications, import_export, fiducial
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -37,3 +37,5 @@ api_router.include_router(external_api.mgmt_router, tags=["API Keys"])
 api_router.include_router(comments.router, tags=["Comments"])
 api_router.include_router(workflows.router, tags=["Workflows"])
 api_router.include_router(notifications.router, tags=["Notifications"])
+api_router.include_router(import_export.router, tags=["Import-Export"])
+api_router.include_router(fiducial.router, tags=["Fiducial"])

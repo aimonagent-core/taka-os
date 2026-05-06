@@ -1,10 +1,11 @@
 // File: frontend/src/App.tsx
-// Purpose: Root App component with ErrorBoundary, routes, and auth context
+// Purpose: Root App component with ErrorBoundary, routes, auth context, and PWA
 
 import { FC } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./components/AuthContext";
+import { usePWA } from "./hooks/usePWA";
 import DocumentUpload from "./components/documents/DocumentUpload";
 import MemorySearch from "./components/memory/MemorySearch";
 import HILDashboard from "./components/hil/HILDashboard";
@@ -21,6 +22,7 @@ import AuditTrailPage from "./pages/AuditTrailPage";
 import ComplianceReportPage from "./pages/ComplianceReportPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import CollaborationPage from "./pages/CollaborationPage";
+import NotFoundPage from "./pages/NotFoundPage";
 import StripeCheckout from "./components/StripeCheckout";
 
 function Home() {
@@ -82,35 +84,69 @@ function HILPage() {
 
 function Nav() {
   const { user, logout } = useAuth();
+  const { isInstallable, isInstalled, isOnline, install } = usePWA();
+
   return (
-    <nav style={{ padding: "1rem", background: "#333", color: "#fff" }}>
-      <Link to="/" style={{ color: "#fff", marginRight: "1rem" }}>Home</Link>
-      {!user && (
-        <>
-          <Link to="/login" style={{ color: "#fff", marginRight: "1rem" }}>Login</Link>
-          <Link to="/register" style={{ color: "#fff", marginRight: "1rem" }}>Register</Link>
-        </>
+    <>
+      {!isOnline && (
+        <div
+          style={{
+            background: "#f59e0b",
+            color: "#fff",
+            textAlign: "center",
+            padding: "0.5rem 1rem",
+            fontSize: "0.875rem",
+          }}
+        >
+          📡 Mode hors ligne — certaines donnees peuvent etre obsoletes
+        </div>
       )}
-      {user && (
-        <>
-          <Link to="/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Dashboard</Link>
-          <Link to="/veille" style={{ color: "#fff", marginRight: "1rem" }}>Veille</Link>
-          <Link to="/kanban" style={{ color: "#fff", marginRight: "1rem" }}>Kanban</Link>
-          <Link to="/admin/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Admin</Link>
-          <Link to="/admin/users" style={{ color: "#fff", marginRight: "1rem" }}>Users</Link>
-          <Link to="/admin/tenants" style={{ color: "#fff", marginRight: "1rem" }}>Tenants</Link>
-          <Link to="/documents" style={{ color: "#fff", marginRight: "1rem" }}>Documents</Link>
-          <Link to="/memory" style={{ color: "#fff", marginRight: "1rem" }}>Memory</Link>
-          <Link to="/hil" style={{ color: "#fff", marginRight: "1rem" }}>HIL</Link>
-          <Link to="/audit" style={{ color: "#fff", marginRight: "1rem" }}>Audit</Link>
-          <Link to="/compliance" style={{ color: "#fff", marginRight: "1rem" }}>Conformite</Link>
-          <Link to="/analytics" style={{ color: "#fff", marginRight: "1rem" }}>Analytics</Link>
-          <Link to="/collaboration" style={{ color: "#fff", marginRight: "1rem" }}>Collaboration</Link>
-          <Link to="/pricing" style={{ color: "#fff", marginRight: "1rem" }}>Tarifs</Link>
-          <button onClick={logout}>Logout</button>
-        </>
-      )}
-    </nav>
+      <nav style={{ padding: "1rem", background: "#333", color: "#fff" }}>
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+          <Link to="/" style={{ color: "#fff", marginRight: "1rem" }}>Home</Link>
+          {!user && (
+            <>
+              <Link to="/login" style={{ color: "#fff", marginRight: "1rem" }}>Login</Link>
+              <Link to="/register" style={{ color: "#fff", marginRight: "1rem" }}>Register</Link>
+            </>
+          )}
+          {user && (
+            <>
+              <Link to="/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Dashboard</Link>
+              <Link to="/veille" style={{ color: "#fff", marginRight: "1rem" }}>Veille</Link>
+              <Link to="/kanban" style={{ color: "#fff", marginRight: "1rem" }}>Kanban</Link>
+              <Link to="/admin/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Admin</Link>
+              <Link to="/documents" style={{ color: "#fff", marginRight: "1rem" }}>Documents</Link>
+              <Link to="/memory" style={{ color: "#fff", marginRight: "1rem" }}>Memory</Link>
+              <Link to="/hil" style={{ color: "#fff", marginRight: "1rem" }}>HIL</Link>
+              <Link to="/audit" style={{ color: "#fff", marginRight: "1rem" }}>Audit</Link>
+              <Link to="/compliance" style={{ color: "#fff", marginRight: "1rem" }}>Conformite</Link>
+              <Link to="/analytics" style={{ color: "#fff", marginRight: "1rem" }}>Analytics</Link>
+              <Link to="/collaboration" style={{ color: "#fff", marginRight: "1rem" }}>Collaboration</Link>
+              <Link to="/pricing" style={{ color: "#fff", marginRight: "1rem" }}>Tarifs</Link>
+              <button onClick={logout}>Logout</button>
+            </>
+          )}
+          {isInstallable && !isInstalled && (
+            <button
+              onClick={install}
+              style={{
+                marginLeft: "auto",
+                padding: "0.4rem 0.8rem",
+                background: "#10b981",
+                color: "#fff",
+                border: "none",
+                borderRadius: "0.25rem",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+              }}
+            >
+              📲 Installer TAKA OS
+            </button>
+          )}
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -145,6 +181,7 @@ const App: FC = () => {
               <Route path="/subscription" element={<SubscriptionPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/checkout" element={<StripeCheckout />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>
         </div>
