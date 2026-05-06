@@ -7,6 +7,7 @@ from app.api.v1 import auth, auth_mfa, autonomy, billing, onboarding, webhooks_s
 from app.api.v1.endpoints import documents, health, hil, memory, tenants, users
 from app.api.v1 import veille, scoring, business_lines, dashboard, redacteur, deposant, audit, compliance_reports, platform_credentials, analytics, scrapers
 from app.api.v1 import external_api, comments, workflows, notifications, import_export, fiducial
+from app.api.v1 import blcpv_keywords
 from app.api.v1.scraper import router as scraper_v2_router
 from app.api.v1.health import router as health_scrapers_router
 
@@ -41,5 +42,6 @@ api_router.include_router(workflows.router, tags=["Workflows"])
 api_router.include_router(notifications.router, tags=["Notifications"])
 api_router.include_router(import_export.router, tags=["Import-Export"])
 api_router.include_router(fiducial.router, tags=["Fiducial"])
+api_router.include_router(blcpv_keywords.router, tags=["CPV Keywords"])
 api_router.include_router(scraper_v2_router, tags=["Scrapers v2"])
 api_router.include_router(health_scrapers_router, tags=["Health Scrapers"])

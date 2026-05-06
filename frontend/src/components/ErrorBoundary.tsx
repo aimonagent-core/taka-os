@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⚠️</div>
             <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.5rem", color: "#1a1a2e" }}>
-              Une erreur est survenue
+              Oups ! Quelque chose s'est mal passe.
             </h1>
             <p style={{ color: "#666", marginBottom: "1rem" }}>
               Nous sommes desoles, une erreur inattendue s'est produite.
@@ -95,7 +95,7 @@ export class ErrorBoundary extends Component<Props, State> {
                   cursor: "pointer",
                 }}
               >
-                🔄 Rafraichir
+                🔄 Recharger la page
               </button>
               <a
                 href="/"

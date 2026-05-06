@@ -19,6 +19,8 @@ class NotificationType(str, PyEnum):
     AO_ASSIGNED = "ao_assigned"
     DEADLINE_APPROACHING = "deadline_approaching"
     SYSTEM = "system"
+    NEW_AO = "new_ao"
+    DEADLINE_WARNING = "deadline_warning"
 
 
 class InAppNotification(Base):

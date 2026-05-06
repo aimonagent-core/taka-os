@@ -52,6 +52,7 @@ from app.models.workflow import (
     WorkflowTrigger,
 )
 from app.models.notification import InAppNotification, NotificationType
+from app.models.tenant_profile import TenantCPVPreference
 from app.models.fiducial import (
     PlanComptableEntry,
     JournalEntry,

@@ -218,3 +218,47 @@ async def get_ao_chunks(
             for c in chunks
         ]
     }
+
+
+# =============================================================================
+# Sprint 11 — Recherche full-text dediee
+# =============================================================================
+
+@router.get("/ao/search")
+async def search_ao(
+    q: str = Query(..., min_length=1, max_length=200),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Recherche full-text rapide sur les titres d'AO (autocomplete-friendly)."""
+    search_pattern = f"%{q.lower()}%"
+    stmt = (
+        select(AO)
+        .where(
+            or_(
+                AO.title.ilike(search_pattern),
+                AO.description.ilike(search_pattern),
+                AO.buyer_name.ilike(search_pattern),
+            )
+        )
+        .order_by(AO.created_at.desc())
+        .limit(limit)
+    )
+    rows = await db.execute(stmt)
+    aos = rows.scalars().all()
+
+    return {
+        "query": q,
+        "items": [
+            {
+                "id": str(ao.id),
+                "title": ao.title,
+                "buyer_name": ao.buyer_name,
+                "deadline_date": ao.deadline_date.isoformat() if ao.deadline_date else None,
+                "notice_type": ao.notice_type,
+            }
+            for ao in aos
+        ],
+        "count": len(aos),
+    }

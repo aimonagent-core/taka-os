@@ -16,6 +16,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     JSON,
+    Numeric,
     String,
     Text,
     func,
@@ -110,6 +111,18 @@ class Tenant(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+    # -------------------------------------------------------------------------
+    # Sprint 11 — Champs onboarding entreprise
+    # -------------------------------------------------------------------------
+    siret: Mapped[str | None] = mapped_column(String(14), nullable=True)
+    domaine_activite: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    effectif: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    ca_annuel: Mapped[float | None] = mapped_column(Numeric(15, 2), nullable=True)
+    zones_geo: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    types_marche_acceptes: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    onboarding_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     users: Mapped[list["User"]] = relationship(
         "User", back_populates="tenant", lazy="selectin"

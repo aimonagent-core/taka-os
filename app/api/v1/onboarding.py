@@ -13,8 +13,15 @@ from app.dependencies import get_current_user
 from app.models.ao import Tenant, User
 from app.models.business_line import BusinessLine
 from app.models.feature_flag import SubscriptionTier
+from app.models.tenant_profile import TenantCPVPreference
 from app.schemas.onboarding import OnboardingSetupRequest, OnboardingSetupResponse
+from app.schemas.onboarding_enterprise import (
+    OnboardingEnterpriseRequest,
+    OnboardingEnterpriseResponse,
+    OnboardingStatusResponse,
+)
 from app.services.onboarding import create_tenant_and_admin
+from app.services.onboarding_enterprise import create_tenant_enterprise
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +156,49 @@ async def onboarding_configure(
 
 
 # =============================================================================
+# Sprint 11 — Onboarding entreprise complet (5 etapes)
+# =============================================================================
+
+@router.post(
+    "/enterprise-setup",
+    response_model=OnboardingEnterpriseResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Configuration initiale entreprise — cree tenant + admin + profil",
+)
+async def onboarding_enterprise_setup(
+    request_data: OnboardingEnterpriseRequest,
+    db: AsyncSession = Depends(get_db),
+) -> OnboardingEnterpriseResponse:
+    """Cree un nouveau tenant entreprise avec son administrateur et son profil complet."""
+    tenant, user, token = await create_tenant_enterprise(
+        db=db,
+        tenant_name=request_data.tenant_name,
+        siret=request_data.siret,
+        admin_email=request_data.admin_email,
+        admin_password=request_data.admin_password,
+        admin_full_name=request_data.admin_full_name,
+        domaine_activite=request_data.domaine_activite,
+        cpv_preferences=[cpv.model_dump() for cpv in request_data.cpv_preferences],
+        effectif=request_data.effectif,
+        ca_annuel=request_data.ca_annuel,
+        zones_geo=request_data.zones_geo,
+        types_marche_acceptes=request_data.types_marche_acceptes,
+        plan=request_data.plan,
+    )
+
+    return OnboardingEnterpriseResponse(
+        tenant_id=str(tenant.id),
+        tenant_uuid=str(tenant.id),
+        admin_user_id=str(user.id),
+        admin_email=user.email,
+        access_token=token,
+        token_type="bearer",
+        onboarding_completed=tenant.onboarding_completed,
+        message="Tenant entreprise et administrateur crees avec succes.",
+    )
+
+
+# =============================================================================
 # Statut onboarding
 # =============================================================================
 
@@ -180,3 +230,51 @@ async def onboarding_status(
             "subscription_tier": sub.status if sub else "free",
         },
     }
+
+
+@router.get("/status/{tenant_id}", response_model=OnboardingStatusResponse)
+async def onboarding_status_by_id(
+    tenant_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Verifie le statut d'onboarding d'un tenant par son ID."""
+    stmt = select(Tenant).where(Tenant.id == tenant_id)
+    row = await db.execute(stmt)
+    tenant = row.scalar_one_or_none()
+
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant non trouve")
+
+    # Verifier que l'utilisateur appartient bien a ce tenant (ou est super admin)
+    if str(current_user.tenant_id) != tenant_id and current_user.role.value != "super_admin":
+        raise HTTPException(status_code=403, detail="Acces refuse")
+
+    stmt_cpv = select(TenantCPVPreference).where(
+        TenantCPVPreference.tenant_id == tenant.id
+    )
+    row_cpv = await db.execute(stmt_cpv)
+    has_cpv = row_cpv.scalar_one_or_none() is not None
+
+    stmt_bl = select(BusinessLine).where(
+        BusinessLine.tenant_id == tenant.id,
+        BusinessLine.is_active.is_(True),
+    )
+    row_bl = await db.execute(stmt_bl)
+    has_bl = row_bl.scalar_one_or_none() is not None
+
+    return OnboardingStatusResponse(
+        tenant_id=str(tenant.id),
+        onboarding_completed=tenant.onboarding_completed,
+        onboarding_completed_at=tenant.onboarding_completed_at.isoformat() if tenant.onboarding_completed_at else None,
+        has_cpv_preferences=has_cpv,
+        has_business_line=has_bl,
+        fields_filled={
+            "siret": tenant.siret is not None,
+            "domaine_activite": len(tenant.domaine_activite or []) > 0,
+            "effectif": tenant.effectif is not None,
+            "ca_annuel": tenant.ca_annuel is not None,
+            "zones_geo": len(tenant.zones_geo or []) > 0,
+            "types_marche_acceptes": len(tenant.types_marche_acceptes or []) > 0,
+        },
+    )

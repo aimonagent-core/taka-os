@@ -3,10 +3,12 @@
 
 import { FC } from "react";
 import { Routes, Route, Link } from "react-router-dom";
+import { Toaster } from "sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./components/AuthContext";
 import { useAuthStore } from "./store/useAuthStore";
 import { usePWA } from "./hooks/usePWA";
+import NotificationBell from "./components/NotificationBell";
 import DocumentUpload from "./components/documents/DocumentUpload";
 import MemorySearch from "./components/memory/MemorySearch";
 import HILDashboard from "./components/hil/HILDashboard";
@@ -14,6 +16,7 @@ import VeillePage from "./pages/VeillePage";
 import AODetailPage from "./pages/AODetailPage";
 import KanbanPage from "./pages/KanbanPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import DashboardPage from "./pages/DashboardPage";
 import RedacteurPage from "./pages/RedacteurPage";
 import SoumissionsPage from "./pages/SoumissionsPage";
 import PricingPage from "./pages/PricingPage";
@@ -38,15 +41,7 @@ function Register() {
   return <div><h2>Register</h2><p>Registration form placeholder.</p></div>;
 }
 
-function Dashboard() {
-  const { user } = useAuth();
-  return (
-    <div>
-      <h2>Dashboard</h2>
-      {user ? <p>Welcome, {user.email}</p> : <p>Please log in.</p>}
-    </div>
-  );
-};
+
 
 function AdminUsers() {
   return <div><h2>Admin - Users</h2></div>;
@@ -127,6 +122,9 @@ function Nav() {
               <Link to="/collaboration" style={{ color: "#fff", marginRight: "1rem" }}>Collaboration</Link>
               <Link to="/pricing" style={{ color: "#fff", marginRight: "1rem" }}>Tarifs</Link>
               <button onClick={logout}>Logout</button>
+              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <NotificationBell />
+              </div>
             </>
           )}
           {isInstallable && !isInstalled && (
@@ -163,7 +161,7 @@ const App: FC = () => {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/veille" element={<VeillePage />} />
               <Route path="/ao/:aoId" element={<AODetailPage />} />
               <Route path="/kanban" element={<KanbanPage />} />
@@ -188,6 +186,7 @@ const App: FC = () => {
           </main>
         </div>
       </AuthProvider>
+      <Toaster position="top-right" richColors closeButton duration={5000} />
     </ErrorBoundary>
   );
 };
