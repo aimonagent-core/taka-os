@@ -25,6 +25,7 @@ from app.models import ao_s2  # noqa: F401
 from app.models import scoring  # noqa: F401
 from app.models import business_line  # noqa: F401
 from app.models import feature_flag  # noqa: F401
+from app.models import billing  # noqa: F401
 
 target_metadata = Base.metadata
 

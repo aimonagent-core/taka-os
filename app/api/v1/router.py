@@ -3,7 +3,7 @@
 
 from fastapi import APIRouter
 
-from app.api.v1 import auth, auth_mfa, autonomy
+from app.api.v1 import auth, auth_mfa, autonomy, billing, onboarding, webhooks_stripe
 from app.api.v1.endpoints import documents, health, hil, memory, tenants, users
 from app.api.v1 import veille, scoring, business_lines, dashboard, redacteur, deposant
 
@@ -24,3 +24,6 @@ api_router.include_router(business_lines.router, tags=["Business Lines"])
 api_router.include_router(dashboard.router, tags=["Dashboard"])
 api_router.include_router(redacteur.router, tags=["Redacteur"])
 api_router.include_router(deposant.router, tags=["Deposant"])
+api_router.include_router(billing.router, tags=["Billing"])
+api_router.include_router(onboarding.router, tags=["Onboarding"])
+api_router.include_router(webhooks_stripe.router, tags=["Webhooks"])

@@ -49,6 +49,19 @@ class Settings(BaseSettings):
     # CORS — en staging/production, liste restreinte
     cors_origins: str = "http://localhost:5173,https://localhost"
 
+    # --- Stripe ---
+    stripe_secret_key: str | None = None
+    stripe_publishable_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_price_pro_monthly: str | None = None
+    stripe_price_pro_yearly: str | None = None
+    stripe_price_enterprise_monthly: str | None = None
+
+    # --- Resend (Email) ---
+    resend_api_key: str | None = None
+    from_email: str = "noreply@taka-os.com"
+    from_name: str = "TAKA OS"
+
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )

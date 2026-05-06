@@ -14,6 +14,10 @@ import KanbanPage from "./pages/KanbanPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import RedacteurPage from "./pages/RedacteurPage";
 import SoumissionsPage from "./pages/SoumissionsPage";
+import PricingPage from "./pages/PricingPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import StripeCheckout from "./components/StripeCheckout";
 
 function Home() {
   return <div><h1>TAKA Platform</h1><p>Welcome to TAKA.</p></div>;
@@ -94,6 +98,7 @@ function Nav() {
           <Link to="/documents" style={{ color: "#fff", marginRight: "1rem" }}>Documents</Link>
           <Link to="/memory" style={{ color: "#fff", marginRight: "1rem" }}>Memory</Link>
           <Link to="/hil" style={{ color: "#fff", marginRight: "1rem" }}>HIL</Link>
+          <Link to="/pricing" style={{ color: "#fff", marginRight: "1rem" }}>Tarifs</Link>
           <button onClick={logout}>Logout</button>
         </>
       )}
@@ -124,6 +129,10 @@ const App: FC = () => {
               <Route path="/hil" element={<HILPage />} />
               <Route path="/redacteur" element={<RedacteurPage />} />
               <Route path="/soumissions" element={<SoumissionsPage />} />
+              <Route path="/pricing" element={<PricingPage />} />
+              <Route path="/subscription" element={<SubscriptionPage />} />
+              <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/checkout" element={<StripeCheckout />} />
             </Routes>
           </main>
         </div>

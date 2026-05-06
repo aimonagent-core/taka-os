@@ -36,3 +36,9 @@ from app.models.ao_s2 import AOChunk, AOFile, Source
 from app.models.business_line import BLCPVKeyword, BLMember, BusinessLine
 from app.models.feature_flag import PlanFeatureFlag, SubscriptionTier
 from app.models.scoring import ScoringFeedback, ScoringRun
+from app.models.billing import (
+    EmailLog,
+    EmailPreference,
+    SubscriptionEvent,
+    TenantSubscription,
+)
