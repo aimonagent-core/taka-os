@@ -153,14 +153,15 @@ class DashboardKPIs:
         ]
 
         # Evolution temporelle
+        day_trunc = func.date_trunc("day", AO.created_at)
         stmt_evolution = (
             select(
-                func.date_trunc("day", AO.created_at).label("day"),
+                day_trunc.label("day"),
                 func.count(AO.id).label("cnt"),
             )
             .where(and_(*bl_filter))
-            .group_by(func.date_trunc("day", AO.created_at))
-            .order_by("day")
+            .group_by(day_trunc)
+            .order_by(day_trunc)
         )
         rows_evo = await db.execute(stmt_evolution)
         kpis["evolution_daily"] = [

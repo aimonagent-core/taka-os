@@ -12,6 +12,9 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction --no-ansi --no-root
 
+# Install pytest for E2E tests in container
+RUN pip install --no-cache-dir pytest pytest-asyncio httpx
+
 COPY app ./app
 
 FROM python:3.11-slim AS runtime

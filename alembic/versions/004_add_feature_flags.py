@@ -55,6 +55,7 @@ def upgrade():
             (gen_random_uuid(), 'free', 'Free', 10, 1, 1, 100, 0.00, 0.00, false, false, false, false, false, true, NOW()),
             (gen_random_uuid(), 'pro', 'Pro', 100, 5, 10, 1000, 49.00, 490.00, true, true, false, true, false, true, NOW()),
             (gen_random_uuid(), 'enterprise', 'Enterprise', 999999, 999, 999, 10000, 199.00, 1990.00, true, true, true, true, true, true, NOW())
+        ON CONFLICT (name) DO NOTHING
     """
     )
 
