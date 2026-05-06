@@ -49,7 +49,7 @@ class RedactionPipeline:
                     category="letter",
                     user_id=SYSTEM_USER_ID,
                     db=db,
-                    tenant_id=str(ao.source_id),  # Simplification
+                    tenant_id=str(ao.source_id),
                 )
                 return {"generated": True, "response_id": str(response.id), "error": None}
             except Exception as e:

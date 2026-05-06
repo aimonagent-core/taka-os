@@ -30,9 +30,9 @@ class RedacteurGenerator:
         category: str,
         user_id: str,
         db: AsyncSession,
-        tenant_id: str,
-        template: Optional[ResponseTemplate] = None,
         custom_prompt: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        template: Optional[ResponseTemplate] = None,
     ) -> GeneratedResponse:
         """Génère une réponse pour un AO donné."""
         start = datetime.now(timezone.utc)
@@ -54,7 +54,19 @@ class RedacteurGenerator:
         # Charger le template si non fourni
         if template is None:
             from app.agents.redacteur.templates import TemplateService
-            template = await TemplateService.get_for_ao(db, ao, tenant_id, category)
+
+            # Déterminer le tenant_id pour le fallback
+            ao_tenant_id = tenant_id
+            if not ao_tenant_id and ao.business_line_id:
+                stmt_bl = select(BusinessLine).where(BusinessLine.id == ao.business_line_id)
+                row_bl = await db.execute(stmt_bl)
+                bl = row_bl.scalar_one_or_none()
+                if bl:
+                    ao_tenant_id = str(bl.tenant_id)
+
+            template = await TemplateService.get_for_ao(
+                db, ao, category, fallback_tenant_id=ao_tenant_id
+            )
 
         # Construire le contexte d'enrichissement
         context = await self._build_context(ao, db)

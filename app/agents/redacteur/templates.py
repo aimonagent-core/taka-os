@@ -164,41 +164,65 @@ class TemplateService:
         return templates
 
     @staticmethod
-    async def get_for_ao(db: AsyncSession, ao: AO, tenant_id: str, category: str = "letter") -> ResponseTemplate:
-        """Retourne le meilleur template pour un AO donné.
-        Priorité : BL spécifique > générique par défaut.
+    async def get_for_ao(
+        db: AsyncSession,
+        ao: AO,
+        category: str = "letter",
+        fallback_tenant_id: Optional[str] = None,
+    ) -> ResponseTemplate:
         """
-        # Chercher un template spécifique à la BL
+        Retourne le meilleur template pour un AO donné.
+        Priorité : BL spécifique > template par défaut du tenant.
+        Args:
+            ao: L'AO à rédiger
+            category: 'letter', 'technical', 'financial', 'administrative'
+            fallback_tenant_id: tenant_id explicite si ao n'a pas de BL
+        """
+        # --- Priorité 1 : template spécifique à la Business Line de l'AO ---
         if ao.business_line_id:
             stmt = select(ResponseTemplate).where(
-                and_(
-                    ResponseTemplate.business_line_id == ao.business_line_id,
-                    ResponseTemplate.category == category,
-                    ResponseTemplate.is_active.is_(True),
-                )
+                ResponseTemplate.business_line_id == ao.business_line_id,
+                ResponseTemplate.category == category,
+                ResponseTemplate.is_active == True,
             )
             rows = await db.execute(stmt)
             bl_template = rows.scalar_one_or_none()
             if bl_template:
                 return bl_template
 
-        # Fallback : template par défaut du tenant
-        stmt = select(ResponseTemplate).where(
-            and_(
-                ResponseTemplate.tenant_id == tenant_id,
-                ResponseTemplate.category == category,
-                ResponseTemplate.is_default.is_(True),
-                ResponseTemplate.is_active.is_(True),
+            # Si BL présente mais pas de template spécifique, utiliser le tenant
+            # de la BL comme fallback
+            from app.models.business_line import BusinessLine
+            stmt_bl = select(BusinessLine).where(BusinessLine.id == ao.business_line_id)
+            row_bl = await db.execute(stmt_bl)
+            bl = row_bl.scalar_one_or_none()
+            if bl:
+                fallback_tenant_id = str(bl.tenant_id)
+
+        # --- Priorité 2 : template par défaut du tenant ---
+        tenant_id = fallback_tenant_id
+        if not tenant_id:
+            # Dernier recours : impossible de déterminer le tenant
+            raise ValueError(
+                f"AO {ao.id} n'a pas de Business Line et aucun tenant_id "
+                f"fourni. Impossible de sélectionner un template."
             )
+
+        stmt = select(ResponseTemplate).where(
+            ResponseTemplate.tenant_id == tenant_id,
+            ResponseTemplate.category == category,
+            ResponseTemplate.is_default == True,
+            ResponseTemplate.is_active == True,
         )
         rows = await db.execute(stmt)
         default_template = rows.scalar_one_or_none()
         if default_template:
             return default_template
 
-        # Dernier recours : créer les defaults
+        # --- Priorité 3 : créer les templates par défaut pour ce tenant ---
         defaults = await TemplateService.get_or_create_defaults(db, tenant_id)
         for d in defaults:
             if d.category == category:
                 return d
-        raise ValueError(f"Aucun template trouvé pour category={category}")
+
+        raise ValueError(f"Aucun template trouvé pour category={category}, tenant={tenant_id}")
