@@ -3,8 +3,8 @@ CLI — Commande pour scraper le BOAMP.
 
 Usage:
     python -m app.cli.scrape_boamp --limit 100
-    python -m app.cli.scrape_boamp --limit 50 --where "datePublication > 2025-01-01"
-    python -m app.cli.scrape_boamp --limit 200 --order-by "datePublication DESC"
+    python -m app.cli.scrape_boamp --limit 50 --where "dateparution > 2025-01-01"
+    python -m app.cli.scrape_boamp --limit 200 --order-by "dateparution DESC"
 """
 
 import argparse
@@ -103,7 +103,7 @@ def main() -> None:
         epilog="""
 Exemples:
   python -m app.cli.scrape_boamp --limit 100
-  python -m app.cli.scrape_boamp --limit 50 --where "datePublication > 2025-01-01"
+  python -m app.cli.scrape_boamp --limit 50 --where "dateparution > 2025-01-01"
   python -m app.cli.scrape_boamp --limit 200 --verbose
         """,
     )
@@ -123,8 +123,8 @@ Exemples:
     parser.add_argument(
         "--order-by",
         type=str,
-        default="datePublication DESC",
-        help="Tri des resultats (defaut: 'datePublication DESC')",
+        default="dateparution DESC",
+        help="Tri des resultats (defaut: 'dateparution DESC')",
     )
     parser.add_argument(
         "--verbose", "-v",

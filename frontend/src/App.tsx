@@ -85,7 +85,7 @@ function HILPage() {
 
 function Nav() {
   const { user, logout } = useAuth();
-  const { isAuthenticated, token } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const { isInstallable, isInstalled, isOnline, install } = usePWA();
 
   return (

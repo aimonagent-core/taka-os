@@ -1,6 +1,6 @@
 """
-Scraper BOAMP reel — API data.economie.gouv.fr
-Extrait les marches publics francais via l'API officielle ouverte.
+Scraper BOAMP reel — API DILA / OpenDataSoft (boamp-datadila.opendatasoft.com)
+Extrait les marches publics francais via la nouvelle API officielle ouverte.
 """
 
 import asyncio
@@ -13,6 +13,12 @@ from typing import Any, Optional
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from app.database import get_db
 from app.models.ao_s2 import AO, AOChunk, Source
@@ -22,16 +28,27 @@ from app.services.scrapers.base import BaseScraperV2, ScrapedAO
 logger = logging.getLogger(__name__)
 
 
+def _is_retryable_http_error(exc: BaseException) -> bool:
+    """Détermine si une exception HTTP mérite un retry exponentiel."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        # Retry uniquement sur 5xx et timeout gateway
+        return exc.response.status_code >= 500
+    if isinstance(exc, httpx.RequestError):
+        # Retry sur timeout, connexion perdue, DNS, etc.
+        return True
+    return False
+
+
 class ScraperBOAMP(BaseScraperV2):
     """
     Scraper reel pour le BOAMP (Bulletin Officiel des Annonces des Marches Publics).
-    Utilise l'API data.economie.gouv.fr pour recuperer les annonces en JSON.
+    Utilise l'API boamp-datadila.opendatasoft.com (nouvelle API DILA).
     """
 
     source_name: str = "boamp"
     base_url: str = (
-        "https://data.economie.gouv.fr/api/explore/v2.1/catalog/datasets/"
-        "liste-des-marches-publics-procedures-de-legitimation/records"
+        "https://boamp-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/"
+        "boamp/records"
     )
     rate_limit: float = 1.0  # 1 requete par seconde max
 
@@ -50,14 +67,14 @@ class ScraperBOAMP(BaseScraperV2):
         self,
         limit: int = 100,
         where: Optional[str] = None,
-        order_by: str = "datePublication DESC",
+        order_by: str = "dateparution DESC",
     ) -> list[ScrapedAO]:
         """
-        Recupere les annonces BOAMP depuis l'API data.economie.gouv.fr.
+        Recupere les annonces BOAMP depuis l'API DILA / OpenDataSoft.
 
         Args:
             limit: Nombre maximum d'annonces a recuperer (max 100 par appel).
-            where: Clause WHERE pour filtrer (ex: "datePublication > 2024-01-01").
+            where: Clause WHERE pour filtrer (ex: "dateparution > 2024-01-01").
             order_by: Tri des resultats.
 
         Returns:
@@ -93,12 +110,29 @@ class ScraperBOAMP(BaseScraperV2):
         logger.info(f"[BOAMP] Extraction terminee — {len(all_aos)} annonces recuperees")
         return all_aos[:limit]
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception(_is_retryable_http_error),
+        reraise=True,
+    )
+    async def _http_get(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        params: dict[str, Any],
+    ) -> httpx.Response:
+        """Requete HTTP GET avec retry exponentiel sur 5xx/timeout."""
+        response = await client.get(url, params=params)
+        response.raise_for_status()
+        return response
+
     async def _fetch_batch(
         self,
         limit: int,
         offset: int,
         where: Optional[str] = None,
-        order_by: str = "datePublication DESC",
+        order_by: str = "dateparution DESC",
     ) -> list[ScrapedAO]:
         """
         Recupere un batch d'annonces depuis l'API.
@@ -119,8 +153,7 @@ class ScraperBOAMP(BaseScraperV2):
 
         try:
             async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
-                response = await client.get(self.base_url, params=params)
-                response.raise_for_status()
+                response = await self._http_get(client, self.base_url, params)
         except httpx.HTTPStatusError as exc:
             logger.error(
                 f"[BOAMP] Erreur HTTP {exc.response.status_code} — {exc.response.text[:500]}"
@@ -147,12 +180,72 @@ class ScraperBOAMP(BaseScraperV2):
                 if ao:
                     scraped_aos.append(ao)
             except Exception as exc:
-                uid = record.get("uid", "UNKNOWN")
+                uid = record.get("idweb", "UNKNOWN")
                 logger.warning(f"[BOAMP] Echec parsing record {uid} — {exc}")
                 continue
 
         logger.debug(f"[BOAMP] Batch recupere — {len(scraped_aos)} annonces")
         return scraped_aos
+
+    def _parse_json_str(self, value: Any) -> dict[str, Any]:
+        """Parse une chaine JSON ou retourne un dict vide."""
+        if not value:
+            return {}
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return {}
+        return {}
+
+    def _extract_cpv(self, data: dict[str, Any]) -> Optional[str]:
+        """Extrait le premier code CPV trouve dans les donnees eForms."""
+
+        def _find(obj: Any) -> Optional[str]:
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if k == "cbc:ItemClassificationCode" and isinstance(v, dict):
+                        text = v.get("#text")
+                        if text:
+                            return str(text)
+                    result = _find(v)
+                    if result:
+                        return result
+            elif isinstance(obj, list):
+                for item in obj:
+                    result = _find(item)
+                    if result:
+                        return result
+            return None
+
+        return _find(data)
+
+    def _extract_amount(self, data: dict[str, Any]) -> Optional[float]:
+        """Extrait le montant estime total depuis les donnees eForms."""
+
+        def _find(obj: Any) -> Optional[str]:
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if k == "cbc:EstimatedOverallContractAmount" and isinstance(v, dict):
+                        text = v.get("#text")
+                        if text:
+                            return str(text)
+                    result = _find(v)
+                    if result:
+                        return result
+            elif isinstance(obj, list):
+                for item in obj:
+                    result = _find(item)
+                    if result:
+                        return result
+            return None
+
+        raw = _find(data)
+        if raw:
+            return self._parse_amount(raw)
+        return None
 
     def _parse_record(self, record: dict[str, Any]) -> Optional[ScrapedAO]:
         """
@@ -164,45 +257,58 @@ class ScraperBOAMP(BaseScraperV2):
         Returns:
             ScrapedAO ou None si l'enregistrement est invalide.
         """
-        uid = record.get("uid")
-        if not uid:
-            logger.debug("[BOAMP] Record sans uid — ignore")
+        idweb = record.get("idweb")
+        if not idweb:
+            logger.debug("[BOAMP] Record sans idweb — ignore")
             return None
 
-        titre = record.get("titre", "")
-        if not titre:
-            logger.debug(f"[BOAMP] Record {uid} sans titre — ignore")
+        objet = record.get("objet", "")
+        if not objet:
+            logger.debug(f"[BOAMP] Record {idweb} sans objet — ignore")
             return None
+
+        # Parsing des donnees JSON imbriquees
+        donnees = self._parse_json_str(record.get("donnees", "{}"))
+
+        # CPV et montant depuis les donnees eForms
+        cpv_code = self._extract_cpv(donnees)
+        montant = self._extract_amount(donnees)
 
         # Parsing des dates
-        publication_date = self._parse_date(record.get("datePublication"))
-        deadline_date = self._parse_date(record.get("dateCloture"))
+        publication_date = self._parse_date(record.get("dateparution"))
+        deadline_date = self._parse_date(record.get("datelimitereponse"))
 
-        # Montant
-        montant = self._parse_amount(record.get("montant"))
+        # Localisation (departements)
+        code_dept = record.get("code_departement") or []
+        code_dept_prestation = record.get("code_departement_prestation")
+        if code_dept_prestation:
+            location = str(code_dept_prestation)
+        elif code_dept:
+            location = ", ".join(str(d) for d in code_dept if d)
+        else:
+            location = None
 
-        # URLs
-        uris = record.get("uris", [])
-        url = uris[0] if isinstance(uris, list) and uris else None
+        # URL officielle de l'avis
+        url = record.get("url_avis")
 
         # Construction du raw_data complet
         raw_data = dict(record)
 
         scraped = ScrapedAO(
-            external_id=str(uid),
+            external_id=str(idweb),
             source=self.source_name,
-            title=str(titre).strip(),
+            title=str(objet).strip(),
             description=self._safe_str(record.get("objet")),
-            cpv_code=self._safe_str(record.get("cpv")),
-            cpv_label=self._safe_str(record.get("libelleCpv")),
+            cpv_code=cpv_code,
+            cpv_label=None,  # Label CPV non fourni directement par la nouvelle API
             publication_date=publication_date,
             deadline_date=deadline_date,
             estimated_amount=montant,
             currency="EUR",
-            buyer_name=self._safe_str(record.get("acheteur")),
-            location=self._safe_str(record.get("lieuExecution")),
-            procedure_type=self._safe_str(record.get("procedure")),
-            ao_type=self._safe_str(record.get("nature")),
+            buyer_name=self._safe_str(record.get("nomacheteur")),
+            location=location,
+            procedure_type=self._safe_str(record.get("procedure_libelle")),
+            ao_type=self._safe_str(record.get("nature_libelle")),
             url=url,
             raw_data=raw_data,
         )
@@ -264,7 +370,7 @@ class ScraperBOAMP(BaseScraperV2):
         self,
         limit: int = 100,
         where: Optional[str] = None,
-        order_by: str = "datePublication DESC",
+        order_by: str = "dateparution DESC",
     ) -> dict[str, Any]:
         """
         Recupere les annonces et les insere en base avec embeddings.
@@ -279,7 +385,7 @@ class ScraperBOAMP(BaseScraperV2):
             logger.info("[BOAMP] Aucune annonce a inserer")
             return {"total_fetched": 0, "inserted": 0, "duplicates": 0, "errors": 0}
 
-        # Dedoublonnage SHA-256
+        # Dedoublonnage SHA-256 sur idweb + objet + dateparution
         unique_aos = await self._deduplicate(aos)
 
         # Insertion avec embeddings
@@ -301,7 +407,7 @@ class ScraperBOAMP(BaseScraperV2):
 
     async def _deduplicate(self, aos: list[ScrapedAO]) -> list[ScrapedAO]:
         """
-        Dedupplique les AO par SHA-256 du contenu JSON complet.
+        Dedupplique les AO par SHA-256 des champs cles (idweb + objet + dateparution).
         Verifie aussi l'existence en base par external_id.
         """
         # Verification base de donnees par external_id
@@ -323,9 +429,12 @@ class ScraperBOAMP(BaseScraperV2):
             if ao.external_id in existing_ids:
                 continue
 
-            # Hash SHA-256 du contenu complet
-            content = json.dumps(ao.raw_data, sort_keys=True, default=str)
-            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            # Hash SHA-256 sur les champs cles
+            dedup_key = (
+                f"{ao.external_id}|{ao.title}|"
+                f"{ao.publication_date.isoformat() if ao.publication_date else ''}"
+            )
+            content_hash = hashlib.sha256(dedup_key.encode("utf-8")).hexdigest()
 
             if content_hash in seen_hashes:
                 continue

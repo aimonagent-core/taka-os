@@ -2,6 +2,8 @@
 # T7 — Tests des commentaires
 # =============================================================================
 
+from typing import Any
+
 import pytest
 from httpx import AsyncClient
 

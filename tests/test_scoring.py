@@ -2,6 +2,8 @@
 # T4 — Tests du module de scoring
 # =============================================================================
 
+from typing import Any
+
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession

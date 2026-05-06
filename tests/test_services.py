@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ao import AuditAction, FeatureFlag, FeatureFlagScope
 from app.services.audit_service import AuditService
-from app.services.feature_flags import FeatureFlagService
+from app.services.plan_feature_flags import FeatureFlagService
 
 
 @pytest.mark.asyncio

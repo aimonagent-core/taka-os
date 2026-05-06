@@ -36,20 +36,37 @@ def scraper() -> ScraperBOAMP:
 def sample_api_record() -> dict:
     """Fixture: un enregistrement JSON typique de l'API."""
     return {
-        "uid": "25-12345",
-        "titre": "Fourniture de materiel informatique",
-        "objet": "Le present marche concerne la fourniture de postes de travail.",
-        "datePublication": "2025-04-15T00:00:00",
-        "dateCloture": "2025-05-15T17:00:00",
-        "montant": 150000.00,
-        "acheteur": "Ville de Paris",
-        "lieuExecution": "Paris (75)",
-        "cpv": "30200000",
-        "libelleCpv": "Materiel informatique",
-        "procedure": "Appel d'offres ouvert",
-        "nature": "Fournitures",
-        "format": "Avis de publication",
-        "uris": ["https://www.boamp.fr/avis/25-12345"],
+        "idweb": "25-12345",
+        "objet": "Fourniture de materiel informatique",
+        "dateparution": "2025-04-15",
+        "datelimitereponse": "2025-05-15T17:00:00+02:00",
+        "nomacheteur": "Ville de Paris",
+        "code_departement": ["75"],
+        "code_departement_prestation": None,
+        "procedure_libelle": "Appel d'offres ouvert",
+        "nature_libelle": "Avis de marche",
+        "type_marche_facette": ["Fournitures"],
+        "url_avis": "https://www.boamp.fr/pages/avis/?q=idweb:25-12345",
+        "donnees": json.dumps({
+            "EFORMS": {
+                "ContractNotice": {
+                    "cac:ProcurementProject": {
+                        "cac:MainCommodityClassification": {
+                            "cbc:ItemClassificationCode": {
+                                "@listName": "cpv",
+                                "#text": "30200000"
+                            }
+                        },
+                        "cac:RequestedTenderTotal": {
+                            "cbc:EstimatedOverallContractAmount": {
+                                "@currencyID": "EUR",
+                                "#text": "150000"
+                            }
+                        }
+                    }
+                }
+            }
+        }),
     }
 
 
@@ -77,18 +94,18 @@ class TestBOAMParsing:
         assert result.external_id == "25-12345"
         assert result.source == "boamp"
         assert result.title == "Fourniture de materiel informatique"
-        assert "postes de travail" in (result.description or "")
+        assert result.description == "Fourniture de materiel informatique"
         assert result.cpv_code == "30200000"
-        assert result.cpv_label == "Materiel informatique"
+        assert result.cpv_label is None
         assert result.buyer_name == "Ville de Paris"
-        assert result.location == "Paris (75)"
+        assert result.location == "75"
         assert result.procedure_type == "Appel d'offres ouvert"
-        assert result.ao_type == "Fournitures"
+        assert result.ao_type == "Avis de marche"
         assert result.estimated_amount == 150000.00
         assert result.currency == "EUR"
-        assert result.url == "https://www.boamp.fr/avis/25-12345"
+        assert result.url == "https://www.boamp.fr/pages/avis/?q=idweb:25-12345"
         assert result.raw_data is not None
-        assert result.raw_data["uid"] == "25-12345"
+        assert result.raw_data["idweb"] == "25-12345"
 
     def test_parse_record_dates(self, scraper: ScraperBOAMP):
         """Parse correctement les differents formats de dates."""
@@ -100,7 +117,7 @@ class TestBOAMParsing:
         ]
 
         for date_str, expected in test_cases:
-            record = {"uid": "test", "titre": "Test", "datePublication": date_str}
+            record = {"idweb": "test", "objet": "Test", "dateparution": date_str}
             result = scraper._parse_record(record)
             assert result is not None
             assert result.publication_date == expected
@@ -120,38 +137,55 @@ class TestBOAMParsing:
         ]
 
         for value, expected in test_cases:
-            record = {"uid": "test", "titre": "Test", "montant": value}
+            record = {
+                "idweb": "test",
+                "objet": "Test",
+                "donnees": json.dumps({
+                    "EFORMS": {
+                        "ContractNotice": {
+                            "cac:ProcurementProject": {
+                                "cac:RequestedTenderTotal": {
+                                    "cbc:EstimatedOverallContractAmount": {
+                                        "@currencyID": "EUR",
+                                        "#text": str(value) if value is not None else ""
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }) if value is not None else None,
+            }
             result = scraper._parse_record(record)
             assert result is not None
             assert result.estimated_amount == expected
 
-    def test_parse_record_missing_uid(self, scraper: ScraperBOAMP):
-        """Retourne None si l'enregistrement n'a pas d'uid."""
-        record = {"titre": "Test"}
+    def test_parse_record_missing_idweb(self, scraper: ScraperBOAMP):
+        """Retourne None si l'enregistrement n'a pas d'idweb."""
+        record = {"objet": "Test"}
         result = scraper._parse_record(record)
         assert result is None
 
-    def test_parse_record_empty_title(self, scraper: ScraperBOAMP):
-        """Retourne None si l'enregistrement n'a pas de titre."""
-        record = {"uid": "test", "titre": ""}
+    def test_parse_record_empty_objet(self, scraper: ScraperBOAMP):
+        """Retourne None si l'enregistrement n'a pas d'objet."""
+        record = {"idweb": "test", "objet": ""}
         result = scraper._parse_record(record)
         assert result is None
 
-    def test_parse_record_none_title(self, scraper: ScraperBOAMP):
-        """Retourne None si le titre est None."""
-        record = {"uid": "test", "titre": None}
+    def test_parse_record_none_objet(self, scraper: ScraperBOAMP):
+        """Retourne None si l'objet est None."""
+        record = {"idweb": "test", "objet": None}
         result = scraper._parse_record(record)
         assert result is None
 
     def test_parse_record_minimal(self, scraper: ScraperBOAMP):
         """Parse un enregistrement avec uniquement les champs obligatoires."""
-        record = {"uid": "25-99999", "titre": "Test minimal"}
+        record = {"idweb": "25-99999", "objet": "Test minimal"}
         result = scraper._parse_record(record)
 
         assert result is not None
         assert result.external_id == "25-99999"
         assert result.title == "Test minimal"
-        assert result.description is None
+        assert result.description == "Test minimal"
         assert result.cpv_code is None
         assert result.publication_date is None
         assert result.deadline_date is None
@@ -222,7 +256,8 @@ class TestBOAMPHTTP:
     @respx.mock
     async def test_fetch_batch_network_error(self, scraper: ScraperBOAMP):
         """Gere une erreur reseau."""
-        respx.get(scraper.base_url).mock(side_effect=Exception("Connection refused"))
+        import httpx
+        respx.get(scraper.base_url).mock(side_effect=httpx.ConnectError("Connection refused"))
 
         result = await scraper._fetch_batch(limit=10, offset=0)
 
@@ -236,14 +271,14 @@ class TestBOAMPHTTP:
         )
 
         await scraper._fetch_batch(
-            limit=50, offset=100, where="datePublication > 2025-01-01"
+            limit=50, offset=100, where="dateparution > 2025-01-01"
         )
 
         request = route.calls[0].request
         params = dict(request.url.params)
         assert params["limit"] == "50"
         assert params["offset"] == "100"
-        assert params["where"] == "datePublication > 2025-01-01"
+        assert params["where"] == "dateparution > 2025-01-01"
         assert params["timezone"] == "Europe/Paris"
 
 
@@ -260,14 +295,14 @@ class TestBOAMPPagination:
         page1 = {
             "total_count": 3,
             "results": [
-                {"uid": "25-1", "titre": "AO 1"},
-                {"uid": "25-2", "titre": "AO 2"},
+                {"idweb": "25-1", "objet": "AO 1"},
+                {"idweb": "25-2", "objet": "AO 2"},
             ],
         }
         page2 = {
             "total_count": 3,
             "results": [
-                {"uid": "25-3", "titre": "AO 3"},
+                {"idweb": "25-3", "objet": "AO 3"},
             ],
         }
 
@@ -293,7 +328,7 @@ class TestBOAMPPagination:
         page = {
             "total_count": 10,
             "results": [
-                {"uid": f"25-{i}", "titre": f"AO {i}"}
+                {"idweb": f"25-{i}", "objet": f"AO {i}"}
                 for i in range(5)
             ],
         }
@@ -492,8 +527,8 @@ class TestBOAMPRateLimit:
         """Attend entre les appels API."""
         scraper.rate_limit = 0.1  # Accelerer le test
 
-        page1 = {"total_count": 2, "results": [{"uid": "25-1", "titre": "AO 1"}]}
-        page2 = {"total_count": 2, "results": [{"uid": "25-2", "titre": "AO 2"}]}
+        page1 = {"total_count": 2, "results": [{"idweb": "25-1", "objet": "AO 1"}]}
+        page2 = {"total_count": 2, "results": [{"idweb": "25-2", "objet": "AO 2"}]}
         page_empty = {"total_count": 2, "results": []}
 
         respx.get(scraper.base_url).mock(side_effect=[
@@ -530,7 +565,7 @@ class TestScraperAPI:
         request = ScraperTriggerRequest(limit=10)
         assert request.limit == 10
         assert request.where is None
-        assert request.order_by == "datePublication DESC"
+        assert request.order_by == "dateparution DESC"
 
     def test_schemas_validation(self):
         """Les schemas Pydantic valident correctement les donnees."""

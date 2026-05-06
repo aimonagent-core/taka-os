@@ -14,7 +14,7 @@ from app.models.ao import User
 from app.services.dashboard.kpis import DashboardKPIs
 from app.services.plan_feature_flags import FeatureFlagService
 from app.services.scrapers.base import BaseScraper
-from app.services.scrapers.boamp import BOAMPScraper
+from app.services.scrapers.boamp import ScraperBOAMP
 from app.services.scrapers.enotification import ENotificationScraper
 from app.services.scrapers.joue import JOUEScraper
 from app.services.scrapers.marche_public import MarchePublicScraper
@@ -28,7 +28,7 @@ from app.services.scrapers.aggregateur_fr import AgregateurFRScraper
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 SCRAPER_REGISTRY = {
-    "boamp": BOAMPScraper,
+    "boamp": ScraperBOAMP,
     "joue": JOUEScraper,
     "enotification": ENotificationScraper,
     "marche_public": MarchePublicScraper,

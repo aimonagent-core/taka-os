@@ -44,7 +44,7 @@ from app.models.ao import Tenant, TenantType, User, UserRole
 # --- Configuration de la base de test ---
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
-    "postgresql+asyncpg://taka:password@localhost:5432/taka_test",
+    "postgresql+asyncpg://takaos:takaos_password_123@db:5432/takaos",
 )
 
 
@@ -68,35 +68,7 @@ async def db_engine() -> AsyncGenerator[AsyncEngine, None]:
         poolclass=NullPool,
     )
 
-    # Creer la base de test si elle n'existe pas
-    admin_url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/postgres"
-    admin_engine = create_async_engine(admin_url, poolclass=NullPool)
-    db_name = TEST_DATABASE_URL.rsplit("/", 1)[-1]
-    async with admin_engine.begin() as conn:
-        # Terminer les connexions existantes
-        await conn.execute(
-            text(
-                f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
-                f"WHERE datname = '{db_name}' AND pid <> pg_backend_pid()"
-            )
-        )
-        # Recreer la base
-        await conn.execute(text(f"DROP DATABASE IF EXISTS {db_name}"))
-        await conn.execute(text(f"CREATE DATABASE {db_name}"))
-    await admin_engine.dispose()
-
-    # Installer l'extension pgvector
-    async with engine.begin() as conn:
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
-
-    # Appliquer les migrations Alembic
-    from alembic.config import Config
-    from alembic import command
-
-    alembic_cfg = Config("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
-    command.upgrade(alembic_cfg, "head")
-
+    # La base takaos existe deja avec pgvector et les migrations appliquees
     yield engine
 
     # Cleanup

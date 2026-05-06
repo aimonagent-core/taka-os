@@ -72,7 +72,7 @@ class ScraperTriggerRequest(BaseModel):
     """
     limit: int = Field(default=100, ge=1, le=1000)
     where: Optional[str] = None
-    order_by: Optional[str] = "datePublication DESC"
+    order_by: Optional[str] = "dateparution DESC"
 
 
 class ScraperTriggerResponse(BaseModel):

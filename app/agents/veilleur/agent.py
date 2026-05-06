@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import AsyncSessionLocal
 from app.models.ao_s2 import AO, Source
 from app.pipeline.ingestion import IngestionPipeline
-from app.services.scrapers.boamp import BOAMPScraper
+from app.services.scrapers.boamp import ScraperBOAMP
 from app.services.scrapers.enotification import ENotificationScraper
 from app.services.scrapers.joue import JOUEScraper
 from app.services.scrapers.marche_public import MarchePublicScraper
@@ -24,7 +24,7 @@ from app.services.scrapers.aggregateur_fr import AgregateurFRScraper
 logger = logging.getLogger(__name__)
 
 SCRAPER_REGISTRY = {
-    "boamp": BOAMPScraper,
+    "boamp": ScraperBOAMP,
     "joue": JOUEScraper,
     "enotification": ENotificationScraper,
     "marche_public": MarchePublicScraper,

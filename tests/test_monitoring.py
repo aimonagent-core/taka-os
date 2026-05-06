@@ -26,6 +26,7 @@ class TestScraperRunModel:
 
     def test_scraper_run_creation(self):
         """Cree un ScraperRun avec les valeurs par defaut."""
+        from datetime import datetime, timezone
         run = ScraperRun(
             source="boamp",
             status="ok",
@@ -33,6 +34,7 @@ class TestScraperRunModel:
             inserted=95,
             duplicates=5,
             errors=0,
+            started_at=datetime.now(timezone.utc),
         )
 
         assert run.source == "boamp"
@@ -122,6 +124,7 @@ class TestSubmissionLogModel:
             status="mock_submitted",
             is_mock=True,
             warning_message="Simulation",
+            submitted_at=datetime.now(timezone.utc),
         )
 
         assert log.platform == "marches_publics_gouv"

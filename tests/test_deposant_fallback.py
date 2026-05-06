@@ -70,6 +70,9 @@ class TestDeposantMockExplicit:
             "app.agents.deposant.submitter.FORCE_REAL_SUBMISSION", True
         ):
             db = AsyncMock()
+            mock_result = MagicMock()
+            mock_result.scalar_one_or_none.return_value = None
+            db.execute = AsyncMock(return_value=mock_result)
             # Sans credential valide et sans connecteur mock, ca doit lever
             with pytest.raises(ValueError) as exc_info:
                 await submitter._get_connector_for_platform(
@@ -79,11 +82,12 @@ class TestDeposantMockExplicit:
 
     def test_force_real_has_error_message(self, submitter: DeposantSubmitter):
         """Le message d'erreur est explicite."""
+        import app.agents.deposant.submitter as submitter_module
         with patch(
             "app.agents.deposant.submitter.FORCE_REAL_SUBMISSION", True
         ):
             # On verifie juste que la variable est bien True
-            assert submitter.FORCE_REAL_SUBMISSION is True or True  # patched
+            assert submitter_module.FORCE_REAL_SUBMISSION is True
 
     def test_submission_result_dataclass(self):
         """SubmissionResult a tous les champs attendus."""
@@ -155,7 +159,7 @@ class TestResponseFormatting:
         assert response["warning"] == "C'est un mock"
         assert response["requires_action"] == "Configurez un connecteur"
         assert "_mock_notice" in response
-        assert "SIMULATION" in response["_mock_notice"]
+        assert "simulation" in response["_mock_notice"]
         assert "L121-1" in response["_mock_notice"]
 
     def test_format_real_response(self):

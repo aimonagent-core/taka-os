@@ -37,7 +37,7 @@ class TestRunScraper:
         }
 
         with patch(
-            "app.cli.scrape_boamp.ScraperBOAMP"
+            "app.services.scrapers.boamp.ScraperBOAMP"
         ) as mock_scraper_class:
             mock_scraper = MagicMock()
             mock_scraper.fetch_and_store = AsyncMock(return_value=mock_report)
@@ -63,7 +63,7 @@ class TestRunScraper:
         }
 
         with patch(
-            "app.cli.scrape_boamp.ScraperBOAMP"
+            "app.services.scrapers.boamp.ScraperBOAMP"
         ) as mock_scraper_class:
             mock_scraper = MagicMock()
             mock_scraper.fetch_and_store = AsyncMock(return_value=mock_report)
@@ -94,7 +94,7 @@ class TestRunScraper:
         }
 
         with patch(
-            "app.cli.scrape_boamp.ScraperBOAMP"
+            "app.services.scrapers.boamp.ScraperBOAMP"
         ) as mock_scraper_class:
             mock_scraper = MagicMock()
             mock_scraper.fetch_and_store = AsyncMock(return_value=mock_report)
@@ -117,7 +117,7 @@ class TestRunScraper:
         }
 
         with patch(
-            "app.cli.scrape_boamp.ScraperBOAMP"
+            "app.services.scrapers.boamp.ScraperBOAMP"
         ) as mock_scraper_class:
             mock_scraper = MagicMock()
             mock_scraper.fetch_and_store = AsyncMock(return_value=mock_report)
@@ -133,7 +133,7 @@ class TestRunScraper:
     async def test_run_scraper_exception(self):
         """Retourne code 1 en cas d'exception."""
         with patch(
-            "app.cli.scrape_boamp.ScraperBOAMP"
+            "app.services.scrapers.boamp.ScraperBOAMP"
         ) as mock_scraper_class:
             mock_scraper = MagicMock()
             mock_scraper.fetch_and_store = AsyncMock(
@@ -151,7 +151,7 @@ class TestRunScraper:
     async def test_run_scraper_keyboard_interrupt(self):
         """Retourne code 130 sur Ctrl+C."""
         with patch(
-            "app.cli.scrape_boamp.ScraperBOAMP"
+            "app.services.scrapers.boamp.ScraperBOAMP"
         ) as mock_scraper_class:
             mock_scraper = MagicMock()
             mock_scraper.fetch_and_store = AsyncMock(
@@ -253,7 +253,7 @@ class TestCLIMain:
                 call_kwargs = mock_run.call_args.kwargs
                 assert call_kwargs["limit"] == 100
                 assert call_kwargs["where"] is None
-                assert call_kwargs["order_by"] == "datePublication DESC"
+                assert call_kwargs["order_by"] == "dateparution DESC"
                 assert call_kwargs["verbose"] is False
 
     def test_main_invalid_limit_low(self):
