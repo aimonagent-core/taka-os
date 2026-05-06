@@ -30,7 +30,7 @@ echo "🐳 Build backend Docker..."
 cd "$PROJECT_DIR"
 docker compose -f docker-compose.staging.yml build backend
 
-# 5. Lancer les services
+# 5. Lancer tous les services
 echo "▶️  Demarrage des services..."
 docker compose -f docker-compose.staging.yml up -d
 
@@ -42,11 +42,22 @@ until docker exec taka-db-staging pg_isready -U takaos > /dev/null 2>&1; do
     sleep 2
 done
 
-# 7. Lancer les migrations
-echo "🗄️  Migrations Alembic..."
-docker exec taka-backend-staging alembic upgrade head
+# 7. Attendre que le backend soit healthy (tables creees par create_all)
+echo "⏳ Attente du backend..."
+until docker inspect taka-backend-staging --format '{{.State.Health.Status}}' 2>/dev/null | grep -q "healthy"; do
+    echo "   Backend pas encore pret..."
+    sleep 3
+done
 
-# 8. Seed des donnees si necessaire
+# 8. Marquer les migrations comme appliquees (tables deja creees par init_db/create_all)
+echo "🗄️  Marquage des migrations Alembic..."
+docker exec taka-backend-staging alembic stamp head || true
+
+# 9. Appliquer d'eventuelles migrations futures
+echo "🗄️  Verification des migrations..."
+docker exec taka-backend-staging alembic upgrade head || true
+
+# 10. Seed des donnees si necessaire
 echo "🌱 Verification des seeds..."
 docker exec taka-backend-staging python -c "
 import asyncio
@@ -61,7 +72,7 @@ async def seed():
 asyncio.run(seed())
 " 2>/dev/null || echo "   Seeding deja effectue ou erreur non bloquante"
 
-# 9. Status
+# 11. Status
 echo ""
 echo "✅ TAKA OS Staging est lance !"
 echo ""

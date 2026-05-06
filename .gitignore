@@ -226,3 +226,8 @@ app/_1.*/
 # Node
 node_modules/
 test-results/
+
+# Staging
+.env.staging
+docker/staging/nginx/ssl/*.crt
+docker/staging/nginx/ssl/*.key

@@ -27,6 +27,14 @@ def _standard_response(
     }
 
 
+@router.get("")
+async def health_root() -> dict:
+    """Basic health check — mirrors /health."""
+    return _standard_response(
+        "success", {"alive": True}, "OK"
+    )
+
+
 @router.get("/live")
 async def health_live() -> dict:
     """Liveness probe - lightweight."""
