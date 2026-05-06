@@ -41,6 +41,7 @@ from app.models.billing import (
     SubscriptionEvent,
     TenantSubscription,
 )
+from app.models.analytics import AnalyticsSnapshot
 from app.models.audit import (
     AnomalyDetection,
     AnomalySeverity,

@@ -18,6 +18,12 @@ from app.services.scrapers.boamp import BOAMPScraper
 from app.services.scrapers.enotification import ENotificationScraper
 from app.services.scrapers.joue import JOUEScraper
 from app.services.scrapers.marche_public import MarchePublicScraper
+from app.services.scrapers.region_scraper import RegionScraper
+from app.services.scrapers.dept_scraper import DepartementScraper
+from app.services.scrapers.metropole_scraper import MetropoleScraper
+from app.services.scrapers.ted_full_scraper import TedFullScraper
+from app.services.scrapers.marches_etat_scraper import MarchesEtatScraper
+from app.services.scrapers.aggregateur_fr import AgregateurFRScraper
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -26,6 +32,12 @@ SCRAPER_REGISTRY = {
     "joue": JOUEScraper,
     "enotification": ENotificationScraper,
     "marche_public": MarchePublicScraper,
+    "regions": RegionScraper,
+    "departements": DepartementScraper,
+    "metropoles": MetropoleScraper,
+    "ted": TedFullScraper,
+    "marches_etat": MarchesEtatScraper,
+    "agregateur_fr": AgregateurFRScraper,
 }
 
 

@@ -19,6 +19,7 @@ import SubscriptionPage from "./pages/SubscriptionPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import AuditTrailPage from "./pages/AuditTrailPage";
 import ComplianceReportPage from "./pages/ComplianceReportPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import StripeCheckout from "./components/StripeCheckout";
 
 function Home() {
@@ -102,6 +103,7 @@ function Nav() {
           <Link to="/hil" style={{ color: "#fff", marginRight: "1rem" }}>HIL</Link>
           <Link to="/audit" style={{ color: "#fff", marginRight: "1rem" }}>Audit</Link>
           <Link to="/compliance" style={{ color: "#fff", marginRight: "1rem" }}>Conformite</Link>
+          <Link to="/analytics" style={{ color: "#fff", marginRight: "1rem" }}>Analytics</Link>
           <Link to="/pricing" style={{ color: "#fff", marginRight: "1rem" }}>Tarifs</Link>
           <button onClick={logout}>Logout</button>
         </>
@@ -135,6 +137,7 @@ const App: FC = () => {
               <Route path="/soumissions" element={<SoumissionsPage />} />
               <Route path="/audit" element={<AuditTrailPage />} />
               <Route path="/compliance" element={<ComplianceReportPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/subscription" element={<SubscriptionPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />

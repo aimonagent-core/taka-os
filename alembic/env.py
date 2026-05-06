@@ -27,6 +27,7 @@ from app.models import business_line  # noqa: F401
 from app.models import feature_flag  # noqa: F401
 from app.models import billing  # noqa: F401
 from app.models import audit  # noqa: F401
+from app.models import analytics  # noqa: F401
 
 target_metadata = Base.metadata
 
