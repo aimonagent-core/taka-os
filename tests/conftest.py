@@ -166,9 +166,9 @@ async def test_tenant(db_session: AsyncSession) -> Tenant:
 
 
 @pytest_asyncio.fixture
-async def tenant(db_session: AsyncSession) -> Tenant:
+async def tenant(db_session: AsyncSession, test_tenant: Tenant) -> Tenant:
     """Alias de test_tenant pour compatibilite avec les nouveaux tests."""
-    return await test_tenant(db_session)  # type: ignore[call-arg]
+    return test_tenant
 
 
 # --- Utilisateurs de test ---

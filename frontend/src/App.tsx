@@ -5,6 +5,7 @@ import { FC } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./components/AuthContext";
+import { useAuthStore } from "./store/useAuthStore";
 import { usePWA } from "./hooks/usePWA";
 import DocumentUpload from "./components/documents/DocumentUpload";
 import MemorySearch from "./components/memory/MemorySearch";
@@ -84,6 +85,7 @@ function HILPage() {
 
 function Nav() {
   const { user, logout } = useAuth();
+  const { isAuthenticated, token } = useAuthStore();
   const { isInstallable, isInstalled, isOnline, install } = usePWA();
 
   return (
@@ -110,7 +112,7 @@ function Nav() {
               <Link to="/register" style={{ color: "#fff", marginRight: "1rem" }}>Register</Link>
             </>
           )}
-          {user && (
+          {user && isAuthenticated && (
             <>
               <Link to="/dashboard" style={{ color: "#fff", marginRight: "1rem" }}>Dashboard</Link>
               <Link to="/veille" style={{ color: "#fff", marginRight: "1rem" }}>Veille</Link>

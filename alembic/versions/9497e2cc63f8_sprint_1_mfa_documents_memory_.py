@@ -9,6 +9,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from pgvector.sqlalchemy import Vector
 
 # revision identifiers, used by Alembic.
 revision: str = "9497e2cc63f8"
@@ -336,7 +337,7 @@ def upgrade() -> None:
         sa.Column("content_hash", sa.String(length=64), nullable=False),
         sa.Column(
             "embedding",
-            sa.dialects.postgresql.ARRAY(sa.Float()),
+            Vector(1024),
             nullable=True,
         ),
         sa.Column("priority", sa.Integer(), nullable=False),
@@ -571,7 +572,7 @@ def upgrade() -> None:
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
             "embedding",
-            sa.dialects.postgresql.ARRAY(sa.Float()),
+            Vector(1024),
             nullable=True,
         ),
         sa.Column("token_count", sa.Integer(), nullable=True),
@@ -644,7 +645,7 @@ def upgrade() -> None:
         sa.Column("file_size", sa.Integer(), nullable=True),
         sa.Column(
             "vector_embedding",
-            sa.dialects.postgresql.ARRAY(sa.Float()),
+            Vector(1024),
             nullable=True,
         ),
         sa.Column("extracted_text", sa.Text(), nullable=True),
@@ -726,7 +727,7 @@ def upgrade() -> None:
         sa.Column("content", sa.Text(), nullable=False),
         sa.Column(
             "vector_embedding",
-            sa.dialects.postgresql.ARRAY(sa.Float()),
+            Vector(1024),
             nullable=True,
         ),
         sa.Column("extra_metadata", sa.JSON(), nullable=True),
@@ -830,9 +831,6 @@ def upgrade() -> None:
 
     # ============================================================
     # INDEXES PGVECTOR IVFLLAT sur les colonnes embedding
-    # NOTE: Utilisation de vector() si pgvector est installe,
-    # sinon les colonnes sont de type ARRAY(Float) dans cette
-    # migration et l'extension pgvector est activee dans init_db().
     # ============================================================
     op.execute(
         "CREATE INDEX IF NOT EXISTS ix_document_chunks_embedding ON document_chunks "
