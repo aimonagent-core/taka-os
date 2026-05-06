@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.router import api_router
+from app.api.v1.external_api import public_router as external_public_router
 from app.config import settings
 from app.core.feature_flags_middleware import FeatureFlagsMiddleware
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
@@ -118,6 +119,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.state.limiter = limiter
 app.include_router(api_router)
+app.include_router(external_public_router)
 
 
 @app.get("/health", tags=["Health"])

@@ -42,6 +42,16 @@ from app.models.billing import (
     TenantSubscription,
 )
 from app.models.analytics import AnalyticsSnapshot
+from app.models.api_publique import ExternalApiKey
+from app.models.comment import Comment, CommentMention, CommentStatus
+from app.models.workflow import (
+    ApprovalWorkflow,
+    ApprovalStep,
+    ApprovalRequest,
+    ApprovalDecision,
+    WorkflowTrigger,
+)
+from app.models.notification import InAppNotification, NotificationType
 from app.models.audit import (
     AnomalyDetection,
     AnomalySeverity,

@@ -77,6 +77,12 @@ require_collaborator = RoleChecker(
 require_any_authenticated = RoleChecker(list(UserRole))
 
 
+def require_role(roles: list[str]):
+    """Factory pour creer un RoleChecker a partir de strings."""
+    allowed = [UserRole(r) for r in roles]
+    return RoleChecker(allowed)
+
+
 async def get_current_tenant(user: User = Depends(get_current_user)) -> Tenant:
     if user.tenant is None:
         raise HTTPException(
