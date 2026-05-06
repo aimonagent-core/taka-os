@@ -224,50 +224,60 @@ const ComplianceReportPage: FC = () => {
                   </td>
                 </tr>
               ))}
-              {reports.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: "1rem", textAlign: "center" }}>Aucun rapport</td></tr>
-              )}
             </tbody>
           </table>
+          {reports.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2rem 1rem", color: "#6b7280" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📄</div>
+              <h4 style={{ margin: "0 0 0.5rem" }}>Aucun rapport genere</h4>
+              <p style={{ margin: "0 0 1rem" }}>Creez votre premier rapport de conformite ou de preuve de depot.</p>
+            </div>
+          )}
         </>
       )}
 
       {activeTab === "anomalies" && (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ background: "#f3f4f6" }}>
-              <th style={{ textAlign: "left", padding: "0.5rem" }}>Date</th>
-              <th style={{ textAlign: "left", padding: "0.5rem" }}>Type</th>
-              <th style={{ textAlign: "left", padding: "0.5rem" }}>Titre</th>
-              <th style={{ textAlign: "left", padding: "0.5rem" }}>Severite</th>
-              <th style={{ textAlign: "left", padding: "0.5rem" }}>Statut</th>
-              <th style={{ textAlign: "left", padding: "0.5rem" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {anomalies.map((a) => (
-              <tr key={a.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
-                <td style={{ padding: "0.5rem", fontSize: "0.85rem" }}>
-                  {new Date(a.created_at).toLocaleString("fr-FR")}
-                </td>
-                <td style={{ padding: "0.5rem" }}>{a.type}</td>
-                <td style={{ padding: "0.5rem" }}>{a.title}</td>
-                <td style={{ padding: "0.5rem", color: severityColor(a.severity), fontWeight: "bold" }}>
-                  {a.severity}
-                </td>
-                <td style={{ padding: "0.5rem" }}>{a.status}</td>
-                <td style={{ padding: "0.5rem" }}>
-                  {a.status !== "resolved" && (
-                    <button onClick={() => resolveAnomaly(a.id)}>Resoudre</button>
-                  )}
-                </td>
+        <>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f3f4f6" }}>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Date</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Type</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Titre</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Severite</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Statut</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Actions</th>
               </tr>
-            ))}
-            {anomalies.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: "1rem", textAlign: "center" }}>Aucune anomalie detectee</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {anomalies.map((a) => (
+                <tr key={a.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
+                  <td style={{ padding: "0.5rem", fontSize: "0.85rem" }}>
+                    {new Date(a.created_at).toLocaleString("fr-FR")}
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>{a.type}</td>
+                  <td style={{ padding: "0.5rem" }}>{a.title}</td>
+                  <td style={{ padding: "0.5rem", color: severityColor(a.severity), fontWeight: "bold" }}>
+                    {a.severity}
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>{a.status}</td>
+                  <td style={{ padding: "0.5rem" }}>
+                    {a.status !== "resolved" && (
+                      <button onClick={() => resolveAnomaly(a.id)}>Resoudre</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {anomalies.length === 0 && (
+            <div style={{ textAlign: "center", padding: "2rem 1rem", color: "#6b7280" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🔍</div>
+              <h4 style={{ margin: "0 0 0.5rem" }}>Aucune anomalie detectee</h4>
+              <p style={{ margin: "0 0 1rem" }}>Les verifications automatiques n'ont rien signale pour le moment.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

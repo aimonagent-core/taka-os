@@ -110,47 +110,56 @@ const AuditTrailPage: FC = () => {
       {loading && <p>Chargement...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr style={{ background: "#f3f4f6" }}>
-            <th style={{ textAlign: "left", padding: "0.5rem" }}>Date</th>
-            <th style={{ textAlign: "left", padding: "0.5rem" }}>Acteur</th>
-            <th style={{ textAlign: "left", padding: "0.5rem" }}>Action</th>
-            <th style={{ textAlign: "left", padding: "0.5rem" }}>Cible</th>
-            <th style={{ textAlign: "left", padding: "0.5rem" }}>Resume</th>
-            <th style={{ textAlign: "left", padding: "0.5rem" }}>Severite</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((log) => (
-            <tr key={log.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
-              <td style={{ padding: "0.5rem", fontSize: "0.85rem" }}>
-                {new Date(log.created_at).toLocaleString("fr-FR")}
-              </td>
-              <td style={{ padding: "0.5rem" }}>{log.actor_email || log.actor_type}</td>
-              <td style={{ padding: "0.5rem" }}>{log.action}</td>
-              <td style={{ padding: "0.5rem" }}>
-                {log.target_type} — {log.target_display || log.target_type}
-              </td>
-              <td style={{ padding: "0.5rem", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {log.change_summary}
-              </td>
-              <td style={{ padding: "0.5rem", color: severityColor(log.severity), fontWeight: "bold" }}>
-                {log.severity}
-              </td>
-            </tr>
-          ))}
-          {logs.length === 0 && !loading && (
-            <tr><td colSpan={6} style={{ padding: "1rem", textAlign: "center" }}>Aucun log</td></tr>
-          )}
-        </tbody>
-      </table>
+      {!loading && !error && logs.length === 0 && (
+        <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#6b7280" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📋</div>
+          <h3 style={{ margin: "0 0 0.5rem" }}>Aucun evenement enregistre</h3>
+          <p style={{ margin: 0 }}>L'audit trail enregistre automatiquement les actions importantes de votre organisation.</p>
+        </div>
+      )}
 
-      <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
-        <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - limit))}>Precedent</button>
-        <span>Page {Math.floor(offset / limit) + 1} / {Math.ceil(total / limit) || 1}</span>
-        <button disabled={offset + limit >= total} onClick={() => setOffset(offset + limit)}>Suivant</button>
-      </div>
+      {!loading && logs.length > 0 && (
+        <>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f3f4f6" }}>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Date</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Acteur</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Action</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Cible</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Resume</th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>Severite</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
+                  <td style={{ padding: "0.5rem", fontSize: "0.85rem" }}>
+                    {new Date(log.created_at).toLocaleString("fr-FR")}
+                  </td>
+                  <td style={{ padding: "0.5rem" }}>{log.actor_email || log.actor_type}</td>
+                  <td style={{ padding: "0.5rem" }}>{log.action}</td>
+                  <td style={{ padding: "0.5rem" }}>
+                    {log.target_type} — {log.target_display || log.target_type}
+                  </td>
+                  <td style={{ padding: "0.5rem", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {log.change_summary}
+                  </td>
+                  <td style={{ padding: "0.5rem", color: severityColor(log.severity), fontWeight: "bold" }}>
+                    {log.severity}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+            <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - limit))}>Precedent</button>
+            <span>Page {Math.floor(offset / limit) + 1} / {Math.ceil(total / limit) || 1}</span>
+            <button disabled={offset + limit >= total} onClick={() => setOffset(offset + limit)}>Suivant</button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
