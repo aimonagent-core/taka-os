@@ -59,6 +59,7 @@ services:
       - ./app:/app/app:ro
       - ./alembic:/app/alembic:ro
       - ./alembic.ini:/app/alembic.ini:ro
+      - taka_data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
       interval: 30s
@@ -86,6 +87,7 @@ services:
 
 volumes:
   pgdata:
+  taka_data:
 
 networks:
   taka-network:

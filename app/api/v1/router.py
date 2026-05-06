@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from app.api.v1 import auth, auth_mfa, autonomy, billing, onboarding, webhooks_stripe
 from app.api.v1.endpoints import documents, health, hil, memory, tenants, users
-from app.api.v1 import veille, scoring, business_lines, dashboard, redacteur, deposant
+from app.api.v1 import veille, scoring, business_lines, dashboard, redacteur, deposant, audit, compliance_reports, platform_credentials
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -27,3 +27,6 @@ api_router.include_router(deposant.router, tags=["Deposant"])
 api_router.include_router(billing.router, tags=["Billing"])
 api_router.include_router(onboarding.router, tags=["Onboarding"])
 api_router.include_router(webhooks_stripe.router, tags=["Webhooks"])
+api_router.include_router(audit.router, tags=["Audit"])
+api_router.include_router(compliance_reports.router, tags=["Compliance"])
+api_router.include_router(platform_credentials.router, tags=["Platform Credentials"])

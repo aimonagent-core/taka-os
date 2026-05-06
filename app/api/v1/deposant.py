@@ -54,6 +54,7 @@ async def submit_response(
             platform_id=platform_id,
             user_id=str(current_user.id),
             db=db,
+            tenant_id=str(current_user.tenant_id),
         )
         return {
             "id": str(submission.id),
@@ -79,6 +80,7 @@ async def retry_submission(
             submission_id=submission_id,
             user_id=str(current_user.id),
             db=db,
+            tenant_id=str(current_user.tenant_id),
         )
         return {
             "id": str(submission.id),

@@ -42,3 +42,13 @@ from app.models.billing import (
     SubscriptionEvent,
     TenantSubscription,
 )
+from app.models.audit import (
+    AnomalyDetection,
+    AnomalySeverity,
+    AnomalyStatus,
+    AuditTrail,
+    ComplianceReport,
+    PlatformCredential,
+    PlatformType,
+    SubmissionReceipt,
+)
