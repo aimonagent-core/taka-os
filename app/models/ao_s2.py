@@ -89,6 +89,8 @@ class AO(Base):
     )
     contract_duration_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     notice_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    type_marche: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    deadline_notified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     buyer_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     contact_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

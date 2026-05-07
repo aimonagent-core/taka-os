@@ -13,7 +13,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-dev --no-interaction --no-ansi --no-root
 
 # Install pytest for E2E tests in container
-RUN pip install --no-cache-dir pytest pytest-asyncio httpx
+RUN pip install --no-cache-dir pytest pytest-asyncio httpx faker pytest-order
 
 COPY app ./app
 

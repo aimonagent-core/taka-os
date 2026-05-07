@@ -2,12 +2,14 @@
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
 from app.models.ao_s2 import Source
 from app.agents.veilleur.agent import VeilleurAgent
+from app.services.notification_auto import NotificationAutoService
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +32,19 @@ class VeilleurScheduler:
             for source in sources:
                 self._schedule_source(source)
 
+        # Job quotidien pour les deadlines (Sprint 12)
+        self.scheduler.add_job(
+            func=self._run_deadline_check,
+            trigger=CronTrigger(hour=8, minute=0),
+            id="deadline_warning_check",
+            name="Deadline warnings",
+            replace_existing=True,
+            misfire_grace_time=3600,
+        )
+        logger.info("[Scheduler] Job deadline warnings → 08:00 UTC")
+
         self.scheduler.start()
-        logger.info("[Scheduler] %s jobs de veille actifs", len(self._jobs))
+        logger.info("[Scheduler] %s jobs de veille actifs + deadline check", len(self._jobs))
 
     def _schedule_source(self, source: Source):
         """Cree un job APScheduler pour une source."""
@@ -63,6 +76,18 @@ class VeilleurScheduler:
                 logger.info("[Scheduler] Resultat: %s", result)
             except Exception as e:
                 logger.error("[Scheduler] Erreur scan %s: %s", source_id, e)
+
+    async def _run_deadline_check(self):
+        """Callback execute par APScheduler pour les deadlines."""
+        logger.info("[Scheduler] Verification des deadlines imminentes")
+        async with AsyncSessionLocal() as db:
+            try:
+                notif_service = NotificationAutoService(db)
+                count = await notif_service.notify_deadline_warnings()
+                await db.commit()
+                logger.info("[Scheduler] %s deadline notification(s) creee(s)", count)
+            except Exception as e:
+                logger.error("[Scheduler] Erreur deadline check: %s", e)
 
     def stop(self):
         """Arrete le scheduler."""

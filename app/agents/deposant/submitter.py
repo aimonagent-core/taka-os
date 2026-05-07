@@ -21,6 +21,10 @@ from app.agents.deposant.connectors import get_connector
 from app.agents.deposant.connectors.base import PlatformCredentials
 from app.agents.auditor import AuditEngine
 
+# Sprint 12 Module 3 — Connecteurs generiques
+from app.services.deposant.connectors.base_connector import BasePlatformConnector
+from app.services.deposant.connectors.mock_connector import MockConnector
+
 logger = logging.getLogger(__name__)
 
 # Variable d'environnement pour forcer les soumissions reelles
@@ -69,7 +73,12 @@ class DeposantSubmitter:
     - Une action requise est indiquee pour configurer un connecteur
     - Le mock est logge en WARNING (pas INFO silencieux)
     - Option FORCE_REAL_SUBMISSION=true pour desactiver le mock
+
+    Sprint 12 Module 3 — Supporte l'injection d'un BasePlatformConnector generique.
     """
+
+    def __init__(self, connector: Optional[BasePlatformConnector] = None):
+        self._connector = connector
 
     async def _get_connector_for_platform(
         self,
@@ -146,6 +155,7 @@ class DeposantSubmitter:
         user_id: str,
         db: AsyncSession,
         tenant_id=None,
+        payload: Optional[dict] = None,
     ) -> Submission:
         """Soumet une reponse generee sur une plateforme."""
         stmt = select(GeneratedResponse).where(GeneratedResponse.id == generated_response_id)
@@ -177,89 +187,173 @@ class DeposantSubmitter:
         await db.refresh(submission)
 
         audit = AuditEngine(db)
+        docs: list[dict] = []  # TODO: rattacher documents reels depuis response.documents
 
         try:
-            connector, is_real, cred = await self._get_connector_for_platform(
-                db, tenant_id or getattr(response, "tenant_id", None), platform.platform_type
-            )
-
-            docs = []  # TODO: rattacher documents reels depuis response.documents
-            result = await connector.submit(
-                ao_reference=str(response.ao_id),
-                response_text=response.content[:5000],
-                documents=docs,
-            )
-
-            if result.status.value in ("success", "pending"):
-                submission.status = "submitted" if result.status.value == "success" else "pending"
-                submission.platform_reference = result.platform_reference
-                submission.submitted_at = datetime.now(timezone.utc)
-                submission.platform_response = {
-                    "real": is_real,
-                    "status": result.status.value,
-                    "message": result.message,
-                    "next_steps": result.next_steps,
-                    # v0.10.0 — Fallback explicite
-                    "is_mock": not is_real,
-                    "warning": (
-                        "Ce depot est une SIMULATION. Aucun dossier n'a ete soumis "
-                        f"sur la plateforme reelle '{platform.platform_type}'. "
-                        "Les donnees ont ete enregistrees localement uniquement."
-                        if not is_real
-                        else None
-                    ),
-                    "requires_action": (
-                        "Configurer un connecteur dans Parametres > Plateformes"
-                        if not is_real
-                        else None
-                    ),
-                    "_mock_notice": (
-                        "[ATTENTION] Cette soumission est une simulation locale. "
-                        "Aucun dossier n'a ete transmis a la plateforme reelle. "
-                        "Article L121-1 Code de la consommation — obligation d'information."
-                        if not is_real
-                        else None
-                    ),
-                }
-                logger.info(
-                    "[Deposant] Soumission %s OK (%s) — ref=%s",
-                    submission.id,
-                    "real" if is_real else "mock",
-                    result.platform_reference,
+            if self._connector is not None:
+                # === SPRINT 12 MODULE 3 : connecteur generique injecte ===
+                result = await self._connector.submit(
+                    ao_id=response.ao_id,
+                    documents=docs,
+                    payload=payload or {"response_text": response.content[:5000]},
                 )
+                is_real = not getattr(result, "is_mock", False)
+                status_value = result.status
+                message = getattr(result, "message", "")
+                platform_reference = getattr(result, "external_id", None)
 
-                # Audit log
-                await audit.log_user_action(
-                    tenant_id=tenant_id or getattr(response, "tenant_id", None),
-                    user_id=user_id,
-                    user_email="system",
-                    action="submission_created",
-                    target_type="submission",
-                    target_id=submission.id,
-                    target_display=f"Depot {platform.platform_type}",
-                    change_summary=f"Soumission {'reelle' if is_real else 'mock'} sur {platform.platform_type}",
-                    after_state=submission.platform_response,
-                )
+                if status_value in ("submitted", "pending", "success", "mock_submitted"):
+                    submission.status = "submitted" if status_value in ("submitted", "success") else "pending"
+                    submission.platform_reference = platform_reference
+                    submission.submitted_at = datetime.now(timezone.utc)
+                    submission.platform_response = {
+                        "real": is_real,
+                        "status": status_value,
+                        "message": message,
+                        "next_steps": [],
+                        "is_mock": not is_real,
+                        "warning": (
+                            "Ce depot est une SIMULATION. Aucun dossier n'a ete soumis "
+                            f"sur la plateforme reelle '{platform.platform_type}'. "
+                            "Les donnees ont ete enregistrees localement uniquement."
+                            if not is_real
+                            else None
+                        ),
+                        "requires_action": (
+                            "Configurer un connecteur dans Parametres > Plateformes"
+                            if not is_real
+                            else None
+                        ),
+                        "_mock_notice": (
+                            "[ATTENTION] Cette soumission est une simulation locale. "
+                            "Aucun dossier n'a ete transmis a la plateforme reelle. "
+                            "Article L121-1 Code de la consommation — obligation d'information."
+                            if not is_real
+                            else None
+                        ),
+                    }
+                    logger.info(
+                        "[Deposant] Soumission %s OK (%s) — ref=%s",
+                        submission.id,
+                        "real" if is_real else "mock",
+                        platform_reference,
+                    )
+                    await audit.log_user_action(
+                        tenant_id=tenant_id or getattr(response, "tenant_id", None),
+                        user_id=user_id,
+                        user_email="system",
+                        action="submission_created",
+                        action_category="submission",
+                        target_type="submission",
+                        target_id=submission.id,
+                        target_display=f"Depot {platform.platform_type}",
+                        change_summary=f"Soumission {'reelle' if is_real else 'mock'} sur {platform.platform_type}",
+                        after_state=submission.platform_response,
+                    )
+                else:
+                    submission.status = "rejected"
+                    submission.error_message = message or str(status_value)
+                    submission.retry_count += 1
+                    logger.warning(
+                        "[Deposant] Soumission %s echouee (%s): %s",
+                        submission.id,
+                        status_value,
+                        message,
+                    )
+                    await audit.log_system_action(
+                        tenant_id=tenant_id or getattr(response, "tenant_id", None),
+                        action="submission_failed",
+                        action_category="submission",
+                        target_type="submission",
+                        target_id=submission.id,
+                        change_summary=f"Echec depot {platform.platform_type}: {message}",
+                        severity="warning",
+                        after_state={"error": message, "status": status_value},
+                    )
             else:
-                submission.status = "rejected"
-                submission.error_message = result.message
-                submission.retry_count += 1
-                logger.warning(
-                    "[Deposant] Soumission %s echouee (%s): %s",
-                    submission.id,
-                    result.status.value,
-                    result.message,
+                # === VOIE LEGACY (connecteurs internes agents/deposant/connectors) ===
+                connector, is_real, cred = await self._get_connector_for_platform(
+                    db, tenant_id or getattr(response, "tenant_id", None), platform.platform_type
                 )
 
-                await audit.log_system_action(
-                    tenant_id=tenant_id or getattr(response, "tenant_id", None),
-                    action="submission_failed",
-                    target_type="submission",
-                    target_id=submission.id,
-                    change_summary=f"Echec depot {platform.platform_type}: {result.message}",
-                    severity="warning",
-                    after_state={"error": result.message, "status": result.status.value},
+                result = await connector.submit(
+                    ao_reference=str(response.ao_id),
+                    response_text=response.content[:5000],
+                    documents=docs,
                 )
+
+                if result.status.value in ("success", "pending"):
+                    submission.status = "submitted" if result.status.value == "success" else "pending"
+                    submission.platform_reference = result.platform_reference
+                    submission.submitted_at = datetime.now(timezone.utc)
+                    submission.platform_response = {
+                        "real": is_real,
+                        "status": result.status.value,
+                        "message": result.message,
+                        "next_steps": result.next_steps,
+                        # v0.10.0 — Fallback explicite
+                        "is_mock": not is_real,
+                        "warning": (
+                            "Ce depot est une SIMULATION. Aucun dossier n'a ete soumis "
+                            f"sur la plateforme reelle '{platform.platform_type}'. "
+                            "Les donnees ont ete enregistrees localement uniquement."
+                            if not is_real
+                            else None
+                        ),
+                        "requires_action": (
+                            "Configurer un connecteur dans Parametres > Plateformes"
+                            if not is_real
+                            else None
+                        ),
+                        "_mock_notice": (
+                            "[ATTENTION] Cette soumission est une simulation locale. "
+                            "Aucun dossier n'a ete transmis a la plateforme reelle. "
+                            "Article L121-1 Code de la consommation — obligation d'information."
+                            if not is_real
+                            else None
+                        ),
+                    }
+                    logger.info(
+                        "[Deposant] Soumission %s OK (%s) — ref=%s",
+                        submission.id,
+                        "real" if is_real else "mock",
+                        result.platform_reference,
+                    )
+
+                    # Audit log
+                    await audit.log_user_action(
+                        tenant_id=tenant_id or getattr(response, "tenant_id", None),
+                        user_id=user_id,
+                        user_email="system",
+                        action="submission_created",
+                        action_category="submission",
+                        target_type="submission",
+                        target_id=submission.id,
+                        target_display=f"Depot {platform.platform_type}",
+                        change_summary=f"Soumission {'reelle' if is_real else 'mock'} sur {platform.platform_type}",
+                        after_state=submission.platform_response,
+                    )
+                else:
+                    submission.status = "rejected"
+                    submission.error_message = result.message
+                    submission.retry_count += 1
+                    logger.warning(
+                        "[Deposant] Soumission %s echouee (%s): %s",
+                        submission.id,
+                        result.status.value,
+                        result.message,
+                    )
+
+                    await audit.log_system_action(
+                        tenant_id=tenant_id or getattr(response, "tenant_id", None),
+                        action="submission_failed",
+                        action_category="submission",
+                        target_type="submission",
+                        target_id=submission.id,
+                        change_summary=f"Echec depot {platform.platform_type}: {result.message}",
+                        severity="warning",
+                        after_state={"error": result.message, "status": result.status.value},
+                    )
 
         except Exception as e:
             submission.status = "rejected"
@@ -270,6 +364,7 @@ class DeposantSubmitter:
             await audit.log_system_action(
                 tenant_id=tenant_id or getattr(response, "tenant_id", None),
                 action="submission_exception",
+                action_category="submission",
                 target_type="submission",
                 target_id=submission.id,
                 change_summary=f"Exception depot: {str(e)[:200]}",
@@ -355,3 +450,7 @@ class DeposantSubmitter:
             }
 
         return result
+
+
+# Sprint 12 Module 3 — Alias pour compatibilite avec la nouvelle architecture
+SubmitterAgent = DeposantSubmitter

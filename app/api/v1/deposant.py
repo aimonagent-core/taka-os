@@ -3,6 +3,8 @@ Router API v1 — Endpoints pour le deposant (soumission des dossiers).
 
 VERSION v0.10.0 : Fallback explicite — le mock est signale dans la reponse API.
 """
+import logging
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,6 +17,10 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.ao import User
 from app.models.submission import Submission, SubmissionPlatform
+from app.models.platform_connector import PlatformConnector
+from app.services.deposant.connector_factory import get_connector as get_platform_connector
+from app.services.deposant.connectors.base_connector import BasePlatformConnector
+from app.services.deposant.connectors.mock_connector import MockConnector
 
 router = APIRouter(prefix="/deposant", tags=["deposant"])
 
@@ -192,3 +198,97 @@ async def check_submission_status(
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+# ============================================================================
+# Sprint 12 Module 3 — Endpoints connecteurs generiques
+# ============================================================================
+
+@router.post("/connectors/test")
+async def test_connector_adhoc(
+    body: dict[str, Any],
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Teste une configuration de connecteur sans la sauvegarder.
+
+    Body attendu:
+    {
+        "platform_type": "email_direct",
+        "config": {"smtp_host": "smtp.example.com", ...}
+    }
+    """
+    platform_type = body.get("platform_type")
+    config = body.get("config", {})
+    if not platform_type:
+        raise HTTPException(status_code=422, detail="platform_type requis")
+
+    # Instancie le connecteur directement sans passer par la DB
+    from app.services.deposant.connector_factory import _CONNECTOR_MAP
+    connector_class = _CONNECTOR_MAP.get(platform_type, MockConnector)
+    connector: BasePlatformConnector = connector_class(config)
+
+    try:
+        ok = await connector.test_connection()
+        return {
+            "ok": ok,
+            "platform_type": platform_type,
+            "message": "Connexion OK" if ok else "Echec de connexion",
+        }
+    except Exception as exc:
+        logger = logging.getLogger(__name__)
+        logger.warning("[API] Test connecteur adhoc echoue: %s", exc)
+        return {
+            "ok": False,
+            "platform_type": platform_type,
+            "message": f"Erreur: {exc}",
+        }
+
+
+@router.post("/connectors/{connector_id}/test")
+async def test_existing_connector(
+    connector_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Teste un connecteur existant en base."""
+    from sqlalchemy import select
+    stmt = select(PlatformConnector).where(
+        PlatformConnector.id == connector_id,
+        PlatformConnector.tenant_id == current_user.tenant_id,
+    )
+    row = await db.execute(stmt)
+    pc = row.scalar_one_or_none()
+    if not pc:
+        raise HTTPException(status_code=404, detail="Connecteur introuvable")
+
+    connector = await get_platform_connector(
+        tenant_id=current_user.tenant_id,
+        platform_type=pc.platform_type,
+        session=db,
+    )
+
+    try:
+        ok = await connector.test_connection()
+        pc.test_status = "ok" if ok else "error"
+        pc.last_tested_at = datetime.now(timezone.utc)
+        await db.commit()
+        return {
+            "ok": ok,
+            "connector_id": connector_id,
+            "platform_type": pc.platform_type,
+            "test_status": pc.test_status,
+            "last_tested_at": pc.last_tested_at.isoformat() if pc.last_tested_at else None,
+        }
+    except Exception as exc:
+        pc.test_status = "error"
+        pc.last_tested_at = datetime.now(timezone.utc)
+        await db.commit()
+        logging.getLogger(__name__).warning("[API] Test connecteur %s echoue: %s", connector_id, exc)
+        return {
+            "ok": False,
+            "connector_id": connector_id,
+            "platform_type": pc.platform_type,
+            "test_status": "error",
+            "message": str(exc),
+        }

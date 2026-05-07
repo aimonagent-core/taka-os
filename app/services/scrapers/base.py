@@ -67,6 +67,7 @@ class ScrapedAO:
     location: Optional[str] = None
     procedure_type: Optional[str] = None
     ao_type: Optional[str] = None
+    type_marche: Optional[str] = None
     url: Optional[str] = None
     raw_data: Optional[dict] = None
 

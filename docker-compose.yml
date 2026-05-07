@@ -61,7 +61,7 @@ services:
       - ./alembic.ini:/app/alembic.ini:ro
       - taka_data:/app/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/v1/health/live\")'"]
       interval: 30s
       timeout: 10s
       retries: 3

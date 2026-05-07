@@ -20,9 +20,11 @@ from tenacity import (
     wait_exponential,
 )
 
-from app.database import get_db
+from app.database import AsyncSessionLocal, get_db
 from app.models.ao_s2 import AO, AOChunk, Source
+from app.services.classifier import AOTypeClassifier
 from app.services.llm.embeddings import EmbeddingService
+from app.services.notification_auto import NotificationAutoService
 from app.services.scrapers.base import BaseScraperV2, ScrapedAO
 
 logger = logging.getLogger(__name__)
@@ -313,6 +315,14 @@ class ScraperBOAMP(BaseScraperV2):
             raw_data=raw_data,
         )
 
+        # Classification du type de marche (Sprint 12)
+        classifier = AOTypeClassifier()
+        scraped.type_marche = classifier.classify_sync({
+            "cpv_codes": [cpv_code] if cpv_code else [],
+            "title": scraped.title,
+            "description": scraped.description,
+        })
+
         return scraped
 
     def _parse_date(self, value: Any) -> Optional[datetime]:
@@ -459,6 +469,7 @@ class ScraperBOAMP(BaseScraperV2):
         """
         inserted = 0
         errors = 0
+        inserted_ao_ids: list[str] = []
 
         async for session in get_db():
             # Recuperer ou creer la source BOAMP
@@ -493,6 +504,7 @@ class ScraperBOAMP(BaseScraperV2):
                         buyer_name=ao.buyer_name,
                         region=ao.location,
                         notice_type=ao.procedure_type,
+                        type_marche=ao.type_marche,
                         raw_data=ao.raw_data,
                         external_url=ao.url,
                         status="detected",
@@ -519,6 +531,7 @@ class ScraperBOAMP(BaseScraperV2):
                     session.add(chunk)
 
                     inserted += 1
+                    inserted_ao_ids.append(str(db_ao.id))
 
                 except Exception as exc:
                     logger.error(
@@ -529,5 +542,23 @@ class ScraperBOAMP(BaseScraperV2):
 
             await session.commit()
             break
+
+        # 4. Notifications auto (Sprint 12) — hors transaction principale
+        if inserted_ao_ids:
+            try:
+                async with AsyncSessionLocal() as notif_session:
+                    notif_service = NotificationAutoService(notif_session)
+                    for ao_id in inserted_ao_ids:
+                        try:
+                            await notif_service.notify_tenants_for_new_ao(
+                                uuid.UUID(ao_id)
+                            )
+                        except Exception as exc:
+                            logger.warning(
+                                "[BOAMP] Echec notification AO %s — %s", ao_id, exc
+                            )
+                    await notif_session.commit()
+            except Exception as exc:
+                logger.error("[BOAMP] Erreur batch notifications — %s", exc)
 
         return inserted, errors
