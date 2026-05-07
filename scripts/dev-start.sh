@@ -27,10 +27,18 @@ export DATABASE_URL="postgresql+asyncpg://taka:takapass@localhost:5433/takaos"
 export REDIS_URL="redis://localhost:6380/0"
 export SECRET_KEY="${SECRET_KEY:-dev-secret-key-change-me-in-production}"
 
+# --- Venv binaries ---
+VENV_BIN="$PROJECT_ROOT/.venv/bin"
+if [ ! -f "$VENV_BIN/uvicorn" ]; then
+    echo "❌ Virtualenv not found at $PROJECT_ROOT/.venv"
+    echo "   Run: uv venv --python 3.12 && poetry install"
+    exit 1
+fi
+
 # --- Alembic migrations ---
 echo "🔄 Running alembic upgrade head..."
-alembic upgrade head
+"$VENV_BIN/alembic" upgrade head
 
 # --- Uvicorn dev server ---
 echo "🚀 Starting uvicorn on http://localhost:8001 (auto-reload)"
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+"$VENV_BIN/uvicorn" app.main:app --host 0.0.0.0 --port 8001 --reload
