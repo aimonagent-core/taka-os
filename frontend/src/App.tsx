@@ -12,6 +12,8 @@ import NotificationBell from "./components/NotificationBell";
 import DocumentUpload from "./components/documents/DocumentUpload";
 import MemorySearch from "./components/memory/MemorySearch";
 import HILDashboard from "./components/hil/HILDashboard";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import VeillePage from "./pages/VeillePage";
 import AODetailPage from "./pages/AODetailPage";
 import KanbanPage from "./pages/KanbanPage";
@@ -30,18 +32,41 @@ import NotFoundPage from "./pages/NotFoundPage";
 import StripeCheckout from "./components/StripeCheckout";
 
 function Home() {
-  return <div><h1>TAKA Platform</h1><p>Welcome to TAKA.</p></div>;
+  const { user } = useAuth();
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4">
+      <div className="text-center max-w-2xl">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">TAKA OS</h1>
+        <p className="text-lg text-gray-600 mb-8">
+          Plateforme intelligente de veille et de matching d'appels d'offres pour les entreprises du BTP et des services.
+        </p>
+        {user ? (
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Accéder au Dashboard
+          </Link>
+        ) : (
+          <div className="flex gap-4 justify-center">
+            <Link
+              to="/login"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Se connecter
+            </Link>
+            <Link
+              to="/register"
+              className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+            >
+              S'inscrire
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
-
-function Login() {
-  return <div><h2>Login</h2><p>Login form placeholder.</p></div>;
-}
-
-function Register() {
-  return <div><h2>Register</h2><p>Registration form placeholder.</p></div>;
-}
-
-
 
 function AdminUsers() {
   return <div><h2>Admin - Users</h2></div>;
@@ -95,16 +120,17 @@ function Nav() {
             fontSize: "0.875rem",
           }}
         >
-          📡 Mode hors ligne — certaines donnees peuvent etre obsoletes
+          📡 Mode hors ligne — certaines données peuvent être obsolètes
         </div>
       )}
       <nav style={{ padding: "1rem", background: "#333", color: "#fff" }}>
         <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
           <Link to="/" style={{ color: "#fff", marginRight: "1rem" }}>Home</Link>
-          {!user && (
+          {!user && !isAuthenticated && (
             <>
               <Link to="/login" style={{ color: "#fff", marginRight: "1rem" }}>Login</Link>
               <Link to="/register" style={{ color: "#fff", marginRight: "1rem" }}>Register</Link>
+              <Link to="/onboarding" style={{ color: "#fff", marginRight: "1rem" }}>Onboarding</Link>
             </>
           )}
           {user && isAuthenticated && (
@@ -117,11 +143,16 @@ function Nav() {
               <Link to="/memory" style={{ color: "#fff", marginRight: "1rem" }}>Memory</Link>
               <Link to="/hil" style={{ color: "#fff", marginRight: "1rem" }}>HIL</Link>
               <Link to="/audit" style={{ color: "#fff", marginRight: "1rem" }}>Audit</Link>
-              <Link to="/compliance" style={{ color: "#fff", marginRight: "1rem" }}>Conformite</Link>
+              <Link to="/compliance" style={{ color: "#fff", marginRight: "1rem" }}>Conformité</Link>
               <Link to="/analytics" style={{ color: "#fff", marginRight: "1rem" }}>Analytics</Link>
               <Link to="/collaboration" style={{ color: "#fff", marginRight: "1rem" }}>Collaboration</Link>
               <Link to="/pricing" style={{ color: "#fff", marginRight: "1rem" }}>Tarifs</Link>
-              <button onClick={logout}>Logout</button>
+              <button
+                onClick={logout}
+                className="px-3 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors"
+              >
+                Logout
+              </button>
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <NotificationBell />
               </div>
@@ -159,8 +190,8 @@ const App: FC = () => {
           <main style={{ padding: "2rem" }}>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/veille" element={<VeillePage />} />
               <Route path="/ao/:aoId" element={<AODetailPage />} />

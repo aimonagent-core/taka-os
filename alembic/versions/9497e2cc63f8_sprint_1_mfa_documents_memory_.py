@@ -450,7 +450,6 @@ def upgrade() -> None:
         sa.Column(
             "conversation_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("conversations.id"),
             nullable=True,
         ),
         sa.Column("provider", sa.String(length=50), nullable=False),
@@ -471,6 +470,14 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
+    )
+    # FK ajoutée après création de conversations pour robustesse
+    op.create_foreign_key(
+        "fk_llm_call_logs_conversation_id",
+        "llm_call_logs",
+        "conversations",
+        ["conversation_id"],
+        ["id"],
     )
 
     # ============================================================

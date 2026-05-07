@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useAuth } from '../components/AuthContext';
 
 interface ScoringRun {
@@ -43,6 +44,7 @@ export default function AODetailPage() {
   const [ao, setAo] = useState<AODetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<string>('prudent');
+  const [simulating, setSimulating] = useState(false);
 
   useEffect(() => {
     fetchAO();
@@ -74,6 +76,71 @@ export default function AODetailPage() {
       }
     } catch (err) {
       console.error('Erreur scoring:', err);
+    }
+  };
+
+  const handleSimulateDeposit = async () => {
+    setSimulating(true);
+    try {
+      // 1. Générer une réponse
+      const genRes = await fetch(`/api/v1/redacteur/generate/${aoId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!genRes.ok) {
+        const err = await genRes.json();
+        toast.error(err.detail || 'Impossible de générer la réponse');
+        setSimulating(false);
+        return;
+      }
+      const generated = await genRes.json();
+      const responseId = generated.data?.id || generated.id;
+      if (!responseId) {
+        toast.error('ID de réponse manquant');
+        setSimulating(false);
+        return;
+      }
+
+      // 2. Lister les plateformes
+      const platRes = await fetch('/api/v1/deposant/platforms', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!platRes.ok) {
+        toast.error('Impossible de récupérer les plateformes');
+        setSimulating(false);
+        return;
+      }
+      const platData = await platRes.json();
+      const platforms = platData.platforms || [];
+      if (platforms.length === 0) {
+        toast.warning('Aucune plateforme de dépôt configurée');
+        setSimulating(false);
+        return;
+      }
+      // Privilégier la première plateforme mock ou la première disponible
+      const platform = platforms.find((p: any) => p.is_mock) || platforms[0];
+
+      // 3. Soumettre
+      const subRes = await fetch(`/api/v1/deposant/submit/${responseId}/${platform.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const subData = await subRes.json();
+      if (!subRes.ok) {
+        toast.error(subData.detail || 'Échec de la simulation de dépôt');
+        setSimulating(false);
+        return;
+      }
+
+      if (subData.is_mock || subData.data?.is_mock) {
+        toast.success('Simulation de dépôt réussie (mode mock)');
+      } else {
+        toast.success('Dépôt soumis avec succès');
+      }
+    } catch {
+      toast.error('Erreur lors de la simulation de dépôt');
+    } finally {
+      setSimulating(false);
     }
   };
 
@@ -164,6 +231,27 @@ export default function AODetailPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Simuler dépôt */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '1rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem' }}>Dépôt</h3>
+            <button
+              onClick={handleSimulateDeposit}
+              disabled={simulating}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #10b981',
+                background: '#10b981',
+                color: '#fff',
+                cursor: simulating ? 'not-allowed' : 'pointer',
+                opacity: simulating ? 0.6 : 1,
+                fontWeight: 500,
+              }}
+            >
+              {simulating ? 'Simulation en cours...' : 'Simuler dépôt'}
+            </button>
           </div>
 
           {/* Recommandations */}
