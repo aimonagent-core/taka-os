@@ -11,6 +11,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-takaos}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-vector.sh:/docker-entrypoint-initdb.d/01-init-vector.sh:ro
       - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-takaos} -d ${POSTGRES_DB:-takaos}"]
