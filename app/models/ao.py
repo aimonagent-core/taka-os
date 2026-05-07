@@ -92,7 +92,9 @@ class Tenant(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     type: Mapped[TenantType] = mapped_column(
-        Enum(TenantType), nullable=False, default=TenantType.SOUMISSIONNAIRE
+        Enum(TenantType, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False,
+        default=TenantType.SOUMISSIONNAIRE,
     )
     slug: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, index=True
@@ -150,7 +152,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(Text, nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(255))
     role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole), nullable=False, default=UserRole.VIEWER
+        Enum(UserRole, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=UserRole.VIEWER
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -203,7 +205,7 @@ class UserInvitation(Base):
         Enum(UserRole), nullable=False, default=UserRole.VIEWER
     )
     status: Mapped[InvitationStatus] = mapped_column(
-        Enum(InvitationStatus), default=InvitationStatus.PENDING
+        Enum(InvitationStatus, values_callable=lambda obj: [e.value for e in obj]), default=InvitationStatus.PENDING
     )
     invited_by_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
@@ -229,7 +231,7 @@ class FeatureFlag(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text)
     scope: Mapped[FeatureFlagScope] = mapped_column(
-        Enum(FeatureFlagScope), nullable=False, default=FeatureFlagScope.GLOBAL
+        Enum(FeatureFlagScope, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=FeatureFlagScope.GLOBAL
     )
     tenant_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=True
@@ -421,7 +423,7 @@ class Document(Base):
     mime_type: Mapped[str] = mapped_column(String(64), nullable=False, default="application/pdf")
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[DocumentStatus] = mapped_column(
-        Enum(DocumentStatus), nullable=False, default=DocumentStatus.PENDING
+        Enum(DocumentStatus, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=DocumentStatus.PENDING
     )
     parse_level_reached: Mapped[int | None] = mapped_column(Integer, nullable=True)
     parse_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

@@ -111,8 +111,18 @@ def upgrade():
     )
     op.create_index("idx_bl_cpv_bl_code", "bl_cpv_keywords", ["business_line_id", "cpv_code"])
 
+    # Ajout de la FK manquante sur aos (deplace de 002 car business_lines n'existait pas encore)
+    op.create_foreign_key(
+        "fk_aos_business_lines",
+        "aos",
+        "business_lines",
+        ["business_line_id"],
+        ["id"],
+    )
+
 
 def downgrade():
+    op.drop_constraint("fk_aos_business_lines", "aos", type_="foreignkey")
     op.drop_table("bl_cpv_keywords")
     op.drop_table("bl_members")
     op.drop_table("business_lines")

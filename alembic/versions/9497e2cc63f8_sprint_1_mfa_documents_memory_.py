@@ -391,6 +391,45 @@ def upgrade() -> None:
     )
 
     # ============================================================
+    # TABLE : conversations
+    # ============================================================
+    op.create_table(
+        "conversations",
+        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column(
+            "tenant_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("tenants.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("title", sa.String(length=255), nullable=True),
+        sa.Column("status", sa.String(length=50), nullable=True),
+        sa.Column("extra_metadata", sa.JSON(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_conversations_tenant_id", "conversations", ["tenant_id"], unique=False)
+    op.create_index("ix_conversations_user_id", "conversations", ["user_id"], unique=False)
+
+    # ============================================================
     # TABLE : llm_call_logs
     # ============================================================
     op.create_table(
@@ -665,45 +704,6 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-
-    # ============================================================
-    # TABLE : conversations
-    # ============================================================
-    op.create_table(
-        "conversations",
-        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column(
-            "tenant_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("tenants.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column(
-            "user_id",
-            postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("users.id", ondelete="CASCADE"),
-            nullable=False,
-        ),
-        sa.Column("title", sa.String(length=255), nullable=True),
-        sa.Column("status", sa.String(length=50), nullable=True),
-        sa.Column("extra_metadata", sa.JSON(), nullable=True),
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            sa.DateTime(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
-        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index("ix_conversations_tenant_id", "conversations", ["tenant_id"], unique=False)
-    op.create_index("ix_conversations_user_id", "conversations", ["user_id"], unique=False)
 
     # ============================================================
     # TABLE : messages

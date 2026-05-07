@@ -92,7 +92,6 @@ def upgrade():
         sa.Column(
             "business_line_id",
             postgresql.UUID(as_uuid=True),
-            sa.ForeignKey("business_lines.id"),
             nullable=True,
         ),
         sa.Column(
